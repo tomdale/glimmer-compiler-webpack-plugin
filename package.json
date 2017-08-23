@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tomdale/glimmer-loader.git"
+    "url": "git+https://github.com/tomdale/glimmer-compiler-webpack-plugin.git"
   },
   "keywords": [
     "webpack",
@@ -19,29 +19,34 @@
   "author": "Tom Dale <tom@tomdale.net>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tomdale/glimmer-loader/issues"
+    "url": "https://github.com/tomdale/glimmer-compiler-webpack-plugin/issues"
   },
-  "homepage": "https://github.com/tomdale/glimmer-loader#readme",
+  "homepage": "https://github.com/tomdale/glimmer-compiler-webpack-plugin#readme",
   "devDependencies": {
+    "@glimmer/interfaces": "^0.27.0",
+    "@glimmer/util": "^0.27.0",
+    "@glimmer/wire-format": "^0.27.0",
     "@types/babel-core": "^6.25.1",
     "@types/babel-traverse": "^6.25.2",
     "@types/babylon": "^6.16.2",
     "@types/chai": "^4.0.4",
     "@types/mocha": "^2.2.42",
     "@types/node": "^8.0.24",
+    "@types/tmp": "^0.0.33",
     "@types/webpack": "^3.0.10",
+    "@types/webpack-sources": "^0.1.3",
     "chai": "^4.1.1",
     "mocha": "^3.5.0",
+    "tmp": "^0.0.33",
     "ts-node": "^3.3.0",
     "typescript": "^2.4.2",
     "webpack": "^3.5.5"
   },
   "dependencies": {
-    "@glimmer/util": "^0.27.0",
     "babel-core": "^7.0.0-alpha.19",
     "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
     "babel-traverse": "^7.0.0-alpha.19",
     "babel-types": "^7.0.0-alpha.19",
-    "babylon": "^7.0.0-beta.20"
+    "webpack-sources": "^1.0.1"
   }
 }

@@ -1,6 +1,6 @@
 require('ts-node/register');
 
-const GlimmerCompiler = require('../../src');
+const GlimmerCompiler = require('../../../src');
 const path = require('path');
 
 module.exports = {

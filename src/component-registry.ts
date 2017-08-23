@@ -1,4 +1,5 @@
 import { dict, Option } from '@glimmer/util';
+import Scope from './scope';
 
 export type ModuleName = string;
 export type NamedExport = string;
@@ -8,11 +9,7 @@ export interface Specifier {
   name: ModuleName;
 }
 
-export interface Scope {
-  [identifier: string]: string;
-}
-
-class ComponentModule {
+class ComponentEntry {
   private name: string;
   private scope: Scope;
 
@@ -23,18 +20,18 @@ class ComponentModule {
 }
 
 export default class ComponentRegistry {
-  private registry = dict<ComponentModule>();
+  private registry = dict<ComponentEntry>();
 
   has(name: string): boolean {
     return name in this.registry;
   }
 
-  get(name: string): ComponentModule {
+  get(name: string): ComponentEntry {
     return this.registry[name];
   }
 
   register(name: string, scope: Scope) {
-    this.registry[name] = new ComponentModule(name, scope);
+    this.registry[name] = new ComponentEntry(name, scope);
   }
 
   resolve(name: string, referer: Specifier): Option<string> {

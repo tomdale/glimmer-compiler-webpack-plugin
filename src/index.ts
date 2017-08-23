@@ -1,8 +1,8 @@
-import { BundleCompiler } from '@glimmer/bundle-compiler';
+// import { BundleCompiler } from '@glimmer/bundle-compiler';
 import { Compiler } from 'webpack';
-import { writeFile } from 'fs';
 
-import ComponentRegistry, { Scope } from './component-registry';
+import Bundle from './bundle';
+import Scope from './scope';
 
 let loaderOptions: any[] = [];
 
@@ -17,31 +17,30 @@ class GlimmerCompiler {
     }
   }
 
-  templates: string[] = [];
-  registry: ComponentRegistry;
+  bundle: Bundle;
 
   constructor(private outputFile: string) {
     for (let options of loaderOptions) {
       options.compiler = this;
     }
     loaderOptions = [];
-
-    this.registry = new ComponentRegistry();
   }
 
   addComponent(path: string, template: string, scope: Scope) {
-    this.registry.register(path, scope);
-    this.bundle.add(path, template);
+    this.bundle.add(path, template, scope);
   }
 
   apply(compiler: Compiler) {
-    compiler.plugin('emit', (compilation, cb) => {
-      writeFile(this.outputFile, this.templates.join('\n'), { encoding: 'utf8' }, err => {
+    compiler.plugin('this-compilation', compilation => {
+      let resolver = compilation.resolvers.normal;
+      this.bundle = new Bundle(resolver);
+
+      compilation.plugin('additional-assets', (cb: () => void) => {
+        compilation.assets[this.outputFile] = this.bundle.compile();
         cb();
       });
     });
   }
-
 }
 
 export = GlimmerCompiler;

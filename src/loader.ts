@@ -3,9 +3,10 @@ import { relative } from 'path';
 
 import extractTemplate from './extract-template';
 
-export = function(this: webpack.loader.LoaderContext, source: string, map: string) {
+export = function(this: webpack.loader.LoaderContext, source: string, _map: string) {
   let { compiler } = this.query;
 
+  // Get the path of the module relative to the project root.
   let relativePath = relative(this.context, this.resourcePath);
 
   let { template, code, scope } = extractTemplate(source);

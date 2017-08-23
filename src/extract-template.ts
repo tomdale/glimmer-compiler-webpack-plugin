@@ -1,40 +1,54 @@
-import { parse } from 'babylon';
-import { transform } from 'babel-core';
-import traverse, { NodePath } from 'babel-traverse';
-import { dirname, resolve, relative } from 'path';
-import { PluginObj } from 'babel-core';
-import { ImportDeclaration } from 'babel-types';
+import * as Babel from 'babel-core';
+import { NodePath } from 'babel-traverse';
 import * as types from 'babel-types';
+import Scope from './scope';
+import { expect } from '@glimmer/util';
 
 interface PluginState {
   localBinding: types.Identifier;
 }
 
+interface PluginResult {
+  template: string | null;
+  scope: Scope;
+}
+
+/**
+ * The result of extracting a template from a source file. The result contains
+ * the extracted template, the modified source with the embedded template
+ * removed, and a set of imports in scope for the template.
+ */
 interface ExtractionResult {
-  template: string;
+  template: string | null;
+  scope: Scope;
   code: string;
 }
 
-interface Scope {
-  [key: string]: string;
-}
+/**
+ * Extracts a template from a single-file component. Given a string of source
+ * code, it will return a result containing the extracted template, the modified
+ * source code with the embedded template removed, and a scope object containing
+ * all of the imports in scope for that template.
+ */
+export default function extractTemplate(source: string): ExtractionResult {
+  let pluginResult: PluginResult = { template: null, scope: {} };
+  let { code } = Babel.transform(source, { plugins: [ExtractTemplate(pluginResult)] });
 
-export default function extractTemplate(source: string) {
-  let template: string | null = null;
+  let { template, scope } = pluginResult;
 
-  let scope: Scope = {};
-
-  let { code } = transform(source, {
-    plugins: ['syntax-class-properties', ExtractTemplatePlugin]
-  });
+  scope = expect(scope, 'could not build scope for template');
+  code = expect(code, 'could not remove template from JavaScript source');
 
   return { template, scope, code };
+}
 
-  function ExtractTemplatePlugin(babel: any): PluginObj<PluginState> {
+function ExtractTemplate(result: PluginResult) {
+  return function(babel: typeof Babel): babel.PluginObj<PluginState> {
     const { types: t }: { types: typeof types } = babel;
 
     return {
       name: 'extract-template-babel-plugin',
+      inherits: require('babel-plugin-syntax-class-properties').default,
 
       visitor: {
         ExportDefaultDeclaration(path) {
@@ -48,8 +62,7 @@ export default function extractTemplate(source: string) {
               if (!(node as any).static) { return; }
 
               if (t.isIdentifier(node.key, { name: 'template' })) {
-                let value = path.get('value');
-                template = extractNodeValue(path.get('value'));
+                result.template = extractNodeValue(path.get('value'));
                 path.remove();
               }
             }
@@ -58,8 +71,16 @@ export default function extractTemplate(source: string) {
 
         ImportDefaultSpecifier(path) {
           let local = path.node.local.name;
-          let source = (path.parentPath.node as types.ImportDeclaration).source.value;
-          scope[local] = source;
+          let module = (path.parentPath.node as types.ImportDeclaration).source.value;
+          result.scope[local] = { name: 'default', module };
+        },
+
+        ImportSpecifier(path) {
+          let local = path.node.local.name;
+          let imported = path.node.imported.name;
+          let module = (path.parentPath.node as types.ImportDeclaration).source.value;
+
+          result.scope[local] = { name: imported, module };
         }
       }
     };
