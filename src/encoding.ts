@@ -18,7 +18,7 @@ export class Encoder {
 
   constructor(private program: number[]) {}
 
-  encode(): number[] {
+  private encode(): number[] {
     let { program } = this;
     let encoded = [];
     for (let i = 0; i < program.length; i += 4) {
@@ -36,17 +36,17 @@ export class Encoder {
 
       let argsLength = this.getOperationLength(op1, op2, op3);
       encoded.push((type | (argsLength << ARG_SHIFT)));
-      this.encodeOperands(encoded, argsLength, op1, op2, op3);
+      this.pushOperands(encoded, argsLength, op1, op2, op3);
     }
 
     return encoded;
   }
 
-  toHex(encoded: number[]): string {
+  private toHex(encoded: number[]): string {
     return String.fromCharCode.apply(null, new Uint16Array(encoded));
   }
 
-  encodeOperands(encoded: number[], argsLength: number, op1: number, op2: number, op3: number) {
+  private pushOperands(encoded: number[], argsLength: number, op1: number, op2: number, op3: number) {
     switch(argsLength) {
       case 1:
         encoded.push(op1);
@@ -63,7 +63,7 @@ export class Encoder {
     }
   }
 
-  getOperationLength(op1: number, op2: number, op3: number) {
+  private getOperationLength(op1: number, op2: number, op3: number) {
     let length = 0;
 
     if (op1 !== 0) {
@@ -87,17 +87,7 @@ export class Decoder {
     return new this().decode(hexString);
   }
 
-  str2ab(str: string): Uint16Array {
-    let buf = new ArrayBuffer(str.length * 2); // 2 bytes for each char
-    let bufView = new Uint16Array(buf);
-    for (let i = 0, strLen = str.length; i < strLen; i++) {
-      bufView[i] = str.charCodeAt(i);
-    }
-
-    return bufView;
-  }
-
-  decode(hexString: string): Uint16Array {
+  private decode(hexString: string): Uint16Array {
     let buffer = new ArrayBuffer(hexString.length * 2); // 2 bytes for each char
     let program = new Uint16Array(buffer);
 
