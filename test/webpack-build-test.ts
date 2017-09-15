@@ -17,10 +17,12 @@ describe('component loader', () => {
       } else if (stats.hasErrors()) {
         done(new Error(stats.toString()));
       } else {
-        let compiledTemplates = JSON.parse(readFileSync(path.join(config.output.path, 'templates.gbx')).toString());
-        expect(compiledTemplates).to.deep.equal([
-          25,1,0,0,31,0,0,0,22,2,0,0,32,0,0,0,20,0,0,0,25,3,0,0,31,0,0,0,22,4,0,0,32,0,0,0,20,0,0,0
-        ]);
+        let binaryOutput = readFileSync(path.join(config.output.path, 'templates.gbx'));
+        let compiledTemplates = new Uint16Array(binaryOutput);
+
+        expect(Array.from(compiledTemplates)).to.deep.equal(
+          [25, 1, 1, 0, 31, 0, 22, 1, 2, 0, 32, 0, 20, 0, 25, 1, 3, 0, 31, 0, 22, 1, 4, 0, 32, 0, 20, 0]
+        );
         done();
       }
     });

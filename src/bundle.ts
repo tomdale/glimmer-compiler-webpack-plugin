@@ -1,7 +1,7 @@
-import { ConcatSource } from 'webpack-sources';
+import { ConcatSource, RawSource } from 'webpack-sources';
 import { BundleCompiler, CompilerDelegate, Specifier, specifierFor } from '@glimmer/bundle-compiler';
-import { ComponentCapabilities, VMHandle, ICompilableTemplate } from '@glimmer/opcode-compiler';
-import { ProgramSymbolTable } from '@glimmer/interfaces';
+import { ICompilableTemplate } from '@glimmer/opcode-compiler';
+import { ComponentCapabilities, ProgramSymbolTable, VMHandle } from '@glimmer/interfaces';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
 
 import { expect } from '@glimmer/util';
@@ -23,6 +23,12 @@ const CAPABILITIES = {
   attributeHook: true
 };
 
+/**
+ * A Bundle encapsulates the compilation of multiple Glimmer templates into a
+ * final compiled binary bundle. After creating a new Bundle, add one or more
+ * components with `add()`. Once all components have been added to the bundle,
+ * compile and produce a binary output by calling `compile()`.
+ */
 export default class Bundle implements CompilerDelegate {
   resolver: Resolver;
   bundleCompiler: BundleCompiler = new BundleCompiler(this);
@@ -43,8 +49,24 @@ export default class Bundle implements CompilerDelegate {
   }
 
   compile() {
-    let { heap } = this.bundleCompiler.compile();
-    return new ConcatSource(JSON.stringify(heap['heap']));
+    let { bundleCompiler } = this;
+    let { heap, pool } = bundleCompiler.compile();
+    let map = bundleCompiler.getSpecifierMap();
+    console.log("MAP", map.vmHandleBySpecifier['pairs']);
+    let entry = specifierFor('Main.ts', 'default');
+    let entryHandle = map.vmHandleBySpecifier.get(entry);
+
+    let json = {
+      handle: heap.handle,
+      table: heap.table,
+      pool,
+      entryHandle
+    };
+
+    return {
+      bytecode: new RawSource(heap.buffer as any),
+      constants: new ConcatSource(JSON.stringify(json))
+    }
   }
 
   hasComponentInScope(componentName: string, referrer: Specifier): boolean {
@@ -77,7 +99,7 @@ export default class Bundle implements CompilerDelegate {
       symbolTable: {
         hasEval: block.hasEval,
         symbols: block.symbols,
-        referer: specifier
+        referrer: specifier
       },
       compile(): VMHandle {
         return compile();

@@ -35,8 +35,15 @@ class GlimmerCompiler {
       let resolver = compilation.resolvers.normal;
       this.bundle = new Bundle(resolver);
 
+      // compilation.plugin('seal', (mod: any, cb: () => void) => {
+      //   console.log(mod);
+      //   cb();
+      // });
+
       compilation.plugin('additional-assets', (cb: () => void) => {
-        compilation.assets[this.outputFile] = this.bundle.compile();
+        let { bytecode, constants } = this.bundle.compile();
+        compilation.assets[this.outputFile] = bytecode;
+        compilation.assets[this.outputFile + '.json'] = constants;
         cb();
       });
     });

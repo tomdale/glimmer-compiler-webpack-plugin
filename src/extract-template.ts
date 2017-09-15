@@ -32,7 +32,13 @@ interface ExtractionResult {
  */
 export default function extractTemplate(source: string): ExtractionResult {
   let pluginResult: PluginResult = { template: null, scope: {} };
-  let { code } = Babel.transform(source, { plugins: [ExtractTemplate(pluginResult)] });
+  let { code } = Babel.transform(source, { plugins: [
+    // We rely on not-yet-standardize class property syntax, which requires a
+    // Babel syntax plugin.
+    require('babel-plugin-syntax-class-properties').default,
+    require('babel-plugin-syntax-typescript').default,
+    ExtractTemplate(pluginResult)
+  ] });
 
   let { template, scope } = pluginResult;
 
@@ -42,33 +48,55 @@ export default function extractTemplate(source: string): ExtractionResult {
   return { template, scope, code };
 }
 
+/**
+ * Factory function for the Babel plugin that closes over the passed result.
+ * Because there's no good way for a Babel plugin to pass results, we instead
+ * allow the caller to pass in a result object that gets mutated during
+ * traversal.
+ */
 function ExtractTemplate(result: PluginResult) {
   return function(babel: typeof Babel): babel.PluginObj<PluginState> {
     const { types: t }: { types: typeof types } = babel;
 
     return {
       name: 'extract-template-babel-plugin',
-      inherits: require('babel-plugin-syntax-class-properties').default,
 
       visitor: {
+        // Look for the file's default export. We only attempt to extract
+        // templates from default exports that are classes.
         ExportDefaultDeclaration(path) {
           let declaration = path.node.declaration;
 
           if (!t.isClassDeclaration(declaration)) { return; }
 
+          // Look for a static class property called `template`
           path.get('declaration').traverse({
             ClassProperty(path) {
               let node = path.node;
               if (!(node as any).static) { return; }
 
               if (t.isIdentifier(node.key, { name: 'template' })) {
+                // Extract the string value from property and set it on the
+                // closed-over result. This is abstracted into a function
+                // because extracting the value will differ a little bit between
+                // e.g. string literals, template literals, tagged templates,
+                // etc.
                 result.template = extractNodeValue(path.get('value'));
+
+                // Remove the property value path so that the template gets
+                // removed from the transformed JavaScript. Note that this is
+                // removing the value, not the property declaration itself, so
+                // the static `template` property will still appear in the
+                // class, just not initialized to any value.
                 path.remove();
               }
             }
           });
         },
 
+        // Scan the file for any named or default imports and capture them in
+        // the result's scope data structure. This allows us to approximately
+        // recreate the lexical scope of the template during compilation.
         ImportDefaultSpecifier(path) {
           let local = path.node.local.name;
           let module = (path.parentPath.node as types.ImportDeclaration).source.value;
