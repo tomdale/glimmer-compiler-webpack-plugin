@@ -3,6 +3,8 @@ import { BundleCompiler, CompilerDelegate, Specifier, specifierFor } from '@glim
 import { ICompilableTemplate } from '@glimmer/opcode-compiler';
 import { ComponentCapabilities, ProgramSymbolTable, VMHandle } from '@glimmer/interfaces';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
+import * as path from 'path';
+import { sync as resolveSync } from 'resolve';
 
 import { expect } from '@glimmer/util';
 
@@ -10,7 +12,7 @@ import ComponentRegistry from './component-registry';
 import Scope from './scope';
 
 export interface Resolver {
-  resolveSync(path: string, request: string): string | null;
+  resolveSync(context: {}, path: string, request: string): string | null;
 }
 
 const CAPABILITIES = {
@@ -43,6 +45,7 @@ export default class Bundle implements CompilerDelegate {
   add(modulePath: string, templateSource: string, scope: Scope) {
     let specifier = specifierFor(modulePath, 'default');
     let block = this.bundleCompiler.add(specifier, templateSource);
+    console.log('Adding', specifier.module);
 
     this.serializedTemplateBlocks.set(specifier, block);
     this.scopes.set(specifier, scope);
@@ -52,8 +55,7 @@ export default class Bundle implements CompilerDelegate {
     let { bundleCompiler } = this;
     let { heap, pool } = bundleCompiler.compile();
     let map = bundleCompiler.getSpecifierMap();
-    console.log("MAP", map.vmHandleBySpecifier['pairs']);
-    let entry = specifierFor('Main.ts', 'default');
+    let entry = specifierFor('./src/glimmer/components/Main.ts', 'default');
     let entryHandle = map.vmHandleBySpecifier.get(entry);
 
     let json = {
@@ -79,7 +81,10 @@ export default class Bundle implements CompilerDelegate {
     let scope = expect(this.scopes.get(referrer), `could not find scope for ${referrer}`);
 
     let { module, name } = scope[componentName];
-    let resolved = expect(this.resolver.resolveSync(module, referrer.module), `could not resolve module ${module} from ${referrer.module}`);
+
+    let basedir = path.dirname(path.resolve(process.cwd(), referrer.module));
+    let resolved = resolveSync(module, { basedir, extensions: ['.ts', '.js'] });
+    resolved = './' + path.relative(process.cwd(), resolved);
 
     return specifierFor(resolved, name);
   }
@@ -93,7 +98,7 @@ export default class Bundle implements CompilerDelegate {
       return this.bundleCompiler.compileSpecifier(specifier);
     };
 
-    let block = expect(this.serializedTemplateBlocks.get(specifier), `could not find serialized template block for ${specifier}`);
+    let block = expect(this.serializedTemplateBlocks.get(specifier), `could not find serialized template block for ${JSON.stringify(specifier)}`);
 
     return {
       symbolTable: {
