@@ -10,6 +10,7 @@ import { expect } from '@glimmer/util';
 
 import ComponentRegistry from './component-registry';
 import Scope from './scope';
+import ExternalModuleTable from './external-module-table';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -25,6 +26,14 @@ const CAPABILITIES = {
   attributeHook: true
 };
 
+export interface Specifiers {
+  [key: string]: Specifier;
+}
+
+interface BundleOptions {
+  helpers?: Specifiers;
+}
+
 /**
  * A Bundle encapsulates the compilation of multiple Glimmer templates into a
  * final compiled binary bundle. After creating a new Bundle, add one or more
@@ -32,20 +41,21 @@ const CAPABILITIES = {
  * compile and produce a binary output by calling `compile()`.
  */
 export default class Bundle implements CompilerDelegate {
-  resolver: Resolver;
-  bundleCompiler: BundleCompiler = new BundleCompiler(this);
-  registry = new ComponentRegistry();
-  scopes = new Map<Specifier, Scope>();
-  serializedTemplateBlocks = new Map<Specifier, SerializedTemplateBlock>();
+  protected resolver: Resolver;
+  protected bundleCompiler: BundleCompiler = new BundleCompiler(this);
+  protected registry = new ComponentRegistry();
+  protected scopes = new Map<Specifier, Scope>();
+  protected serializedTemplateBlocks = new Map<Specifier, SerializedTemplateBlock>();
+  protected helpers: Specifiers;
 
-  constructor(resolver: Resolver) {
+  constructor(resolver: Resolver, options: BundleOptions = {}) {
+    this.helpers = options.helpers || {};
     this.resolver = resolver;
   }
 
   add(modulePath: string, templateSource: string, scope: Scope) {
     let specifier = specifierFor(modulePath, 'default');
     let block = this.bundleCompiler.add(specifier, templateSource);
-    console.log('Adding', specifier.module);
 
     this.serializedTemplateBlocks.set(specifier, block);
     this.scopes.set(specifier, scope);
@@ -56,7 +66,14 @@ export default class Bundle implements CompilerDelegate {
     let { heap, pool } = bundleCompiler.compile();
     let map = bundleCompiler.getSpecifierMap();
     let entry = specifierFor('./src/glimmer/components/Main.ts', 'default');
+
+    let table = new ExternalModuleTable(map);
+    // map.byHandle.forEach((spec, key) => {
+    //   console.log('spec', spec, 'key', key);
+    // });
+
     let entryHandle = map.vmHandleBySpecifier.get(entry);
+
 
     let json = {
       handle: heap.handle,
@@ -67,7 +84,8 @@ export default class Bundle implements CompilerDelegate {
 
     return {
       bytecode: new RawSource(heap.buffer as any),
-      constants: new ConcatSource(JSON.stringify(json))
+      constants: new ConcatSource(JSON.stringify(json)),
+      table
     }
   }
 

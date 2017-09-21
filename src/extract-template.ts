@@ -37,6 +37,7 @@ export default function extractTemplate(source: string): ExtractionResult {
     // Babel syntax plugin.
     require('babel-plugin-syntax-class-properties').default,
     require('babel-plugin-syntax-typescript').default,
+    require('babel-plugin-syntax-decorators').default,
     ExtractTemplate(pluginResult)
   ] });
 

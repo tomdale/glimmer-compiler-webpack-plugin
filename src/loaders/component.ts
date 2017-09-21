@@ -1,7 +1,7 @@
 import webpack = require('webpack');
 import { relative } from 'path';
 
-import extractTemplate from './extract-template';
+import extractTemplate from '../extract-template';
 
 export = function(this: webpack.loader.LoaderContext, source: string, _map: string) {
   // Disable caching until we can integrate incremental Glimmer bundle
