@@ -1,33 +1,51 @@
 import { SpecifierMap, Specifier } from "@glimmer/bundle-compiler";
 import { dict, Dict } from '@glimmer/util';
 import { Source, RawSource } from 'webpack-sources';
+import { join, basename, extname, dirname, relative } from 'path';
 
 export default class ExternalModuleTable {
   constructor(private map: SpecifierMap) {}
 
-  toSource(): Source {
+  toSource(relativePath: string): Source {
     let modules: Specifier[] = [];
 
-    this.map.bySpecifier.forEach((handle, specifier) => {
+    this.map.byHandle.forEach((specifier, handle) => {
       modules[handle] = specifier;
     });
 
     let seen = dict<string>();
+    let identifiers = new Array<string>(modules.length).fill('');
 
-    let imports = modules.map(({ module, name }) => {
+    let imports = modules.map(({ module, name }, i) => {
       let id = getIdentifier(seen, module);
-      let importClause = name === 'default' ? id : `{ ${name} as ${id} }`;
-      return `import ${importClause} from ${JSON.stringify(module)};`
-    }).join('\n');
+      let importClause = getImportClause(name, id);
+      let moduleSpecifier = getModuleSpecifier(relativePath, module);
 
-    let identifiers = Object.keys(seen);
+      identifiers[i] = id;
+
+      return `import ${importClause} from ${moduleSpecifier};`
+    }).join('\n');
 
     let source = `${imports}
 
 const EXTERNAL_MODULE_TABLE = [${identifiers.join(',')}];
+
+export default EXTERNAL_MODULE_TABLE;
 `;
     return new RawSource(source);
   }
+}
+
+function getModuleSpecifier(from: string, to: string): string {
+  let basedir = dirname(from);
+  let target = join(dirname(to), basename(to, extname(to)));
+  let specifier = relative(basedir, target);
+
+  return JSON.stringify(`./${specifier}`);
+}
+
+function getImportClause(name: string, id: string) {
+  return (name === 'default') ? id : `{ ${name} as ${id} }`;
 }
 
 /**

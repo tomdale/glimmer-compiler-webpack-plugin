@@ -65,15 +65,10 @@ export default class Bundle implements CompilerDelegate {
     let { bundleCompiler } = this;
     let { heap, pool } = bundleCompiler.compile();
     let map = bundleCompiler.getSpecifierMap();
-    let entry = specifierFor('./src/glimmer/components/Main.ts', 'default');
-
+    let entry = specifierFor('./src/glimmer/components/Entry.ts', 'default');
     let table = new ExternalModuleTable(map);
-    // map.byHandle.forEach((spec, key) => {
-    //   console.log('spec', spec, 'key', key);
-    // });
 
     let entryHandle = map.vmHandleBySpecifier.get(entry);
-
 
     let json = {
       handle: heap.handle,
@@ -131,7 +126,8 @@ export default class Bundle implements CompilerDelegate {
   }
 
   hasHelperInScope(_helperName: string, _referer: Specifier): boolean {
-    throw new Error("Method not implemented.");
+    return false;
+    // throw new Error("Method not implemented.");
   }
 
   resolveHelperSpecifier(_helperName: string, _referer: Specifier): Specifier {

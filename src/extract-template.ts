@@ -33,7 +33,7 @@ interface ExtractionResult {
 export default function extractTemplate(source: string): ExtractionResult {
   let pluginResult: PluginResult = { template: null, scope: {} };
   let { code } = Babel.transform(source, { plugins: [
-    // We rely on not-yet-standardize class property syntax, which requires a
+    // We rely on not-yet-standardized class property syntax, which requires a
     // Babel syntax plugin.
     require('babel-plugin-syntax-class-properties').default,
     require('babel-plugin-syntax-typescript').default,
