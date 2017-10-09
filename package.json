@@ -48,7 +48,7 @@
     "webpack": "^3.5.5"
   },
   "dependencies": {
-    "@glimmer/bundle-compiler": "^0.29.0",
+    "@glimmer/bundle-compiler": "^0.29.3",
     "@glimmer/syntax": "0.29.0",
     "babel-core": "^7.0.0-alpha.19",
     "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",

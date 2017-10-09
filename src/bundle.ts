@@ -32,6 +32,7 @@ export interface Specifiers {
 
 interface BundleOptions {
   helpers?: Specifiers;
+  compilerDelegate?: CompilerDelegate;
 }
 
 /**
@@ -42,7 +43,7 @@ interface BundleOptions {
  */
 export default class Bundle implements CompilerDelegate {
   protected resolver: Resolver;
-  protected bundleCompiler: BundleCompiler = new BundleCompiler(this);
+  protected bundleCompiler: BundleCompiler;
   protected registry = new ComponentRegistry();
   protected scopes = new Map<Specifier, Scope>();
   protected serializedTemplateBlocks = new Map<Specifier, SerializedTemplateBlock>();
@@ -51,6 +52,11 @@ export default class Bundle implements CompilerDelegate {
   constructor(resolver: Resolver, options: BundleOptions = {}) {
     this.helpers = options.helpers || {};
     this.resolver = resolver;
+    this.bundleCompiler = new BundleCompiler(options.compilerDelegate || this);
+
+    if (options.compilerDelegate) {
+      options.compilerDelegate['bundleCompiler'] = this.bundleCompiler;
+    }
   }
 
   add(modulePath: string, templateSource: string, scope: Scope) {
@@ -127,7 +133,6 @@ export default class Bundle implements CompilerDelegate {
 
   hasHelperInScope(_helperName: string, _referer: Specifier): boolean {
     return false;
-    // throw new Error("Method not implemented.");
   }
 
   resolveHelperSpecifier(_helperName: string, _referer: Specifier): Specifier {

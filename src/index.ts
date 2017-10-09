@@ -4,12 +4,14 @@ import { Source } from 'webpack-sources';
 
 import Bundle, { Specifiers } from './bundle';
 import Scope from './scope';
+import { CompilerDelegate } from '@glimmer/bundle-compiler';
 
 let loaderOptions: any[] = [];
 
 interface CompilerOptions {
   output: string;
   helpers?: Specifiers;
+  compilerDelegate?: CompilerDelegate;
 }
 
 interface Module {
@@ -22,7 +24,8 @@ interface Callback {
 }
 
 class GlimmerCompiler {
-  static compile() { return loader('./loaders/component'); }
+  static component() { return loader('./loaders/component'); }
+  static template() { return loader('./loaders/template'); }
   static data() { return loader('./loaders/data'); }
 
   bundle: Bundle;
@@ -69,17 +72,16 @@ class GlimmerCompiler {
   }
 
   apply(compiler: Compiler) {
-    compiler.plugin('this-compilation', compilation => {
+    compiler.plugin('this-compilation', (compilation: any) => {
       let resolver = compilation.resolvers.normal;
 
-      this.bundle = new Bundle(resolver);
+      this.bundle = new Bundle(resolver, { compilerDelegate: this.compilerOptions.compilerDelegate });
       this.dataSegmentModules = [];
 
       compilation.plugin('optimize-tree', (_chunks: any[], _modules: Module[], cb: Callback) => {
         let { bytecode, constants, table } = this.bundle.compile();
 
         for (let module of this.dataSegmentModules) {
-          console.log('populating...');
           populateDataSegment(module, compilation, table.toSource('./src/glimmer/table.ts'))
             .catch(cb)
             .then(() => cb());
@@ -117,7 +119,6 @@ function populateDataSegment(module: Module, compilation: any, source: Source): 
       if (err) {
         reject(err);
       } else {
-        console.log('resolved');
         resolve();
       }
     });
