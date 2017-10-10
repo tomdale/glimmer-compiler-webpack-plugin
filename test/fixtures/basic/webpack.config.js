@@ -14,7 +14,7 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        use: GlimmerCompiler.compile()
+        use: GlimmerCompiler.component()
       }
     ]
   },

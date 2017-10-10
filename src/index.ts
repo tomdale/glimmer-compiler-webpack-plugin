@@ -5,6 +5,9 @@ import { Source } from 'webpack-sources';
 import Bundle, { Specifiers } from './bundle';
 import Scope from './scope';
 import { CompilerDelegate } from '@glimmer/bundle-compiler';
+import Debug = require('debug');
+
+const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
 let loaderOptions: any[] = [];
 
@@ -72,22 +75,32 @@ class GlimmerCompiler {
   }
 
   apply(compiler: Compiler) {
+    debug('applying plugin');
+
     compiler.plugin('this-compilation', (compilation: any) => {
+      debug('beginning compilation');
+
       let resolver = compilation.resolvers.normal;
 
       this.bundle = new Bundle(resolver, { compilerDelegate: this.compilerOptions.compilerDelegate });
       this.dataSegmentModules = [];
 
       compilation.plugin('optimize-tree', (_chunks: any[], _modules: Module[], cb: Callback) => {
+        debug('optimizing tree');
         let { bytecode, constants, table } = this.bundle.compile();
 
+        let promises: Promise<void>[] = [];
         for (let module of this.dataSegmentModules) {
-          populateDataSegment(module, compilation, table.toSource('./src/glimmer/table.ts'))
-            .catch(cb)
-            .then(() => cb());
+          let promise = populateDataSegment(module, compilation, table.toSource('./src/glimmer/table.ts'));
+          promises.push(promise);
         }
 
+        Promise.all(promises)
+          .catch(cb)
+          .then(() => cb());
+
         compilation.plugin('additional-assets', (cb: () => void) => {
+          debug('adding additional assets');
           let { output } = this.compilerOptions;
 
           compilation.assets[output] = bytecode;
@@ -115,10 +128,13 @@ function populateDataSegment(module: Module, compilation: any, source: Source): 
   });
 
   return new Promise((resolve, reject) => {
+    debug('reprocessing data segment dependencies');
     compilation.processModuleDependencies(module, (err: any) => {
       if (err) {
+        debug('error processing data segment', err);
         reject(err);
       } else {
+        debug('reprocessed data segment dependencies');
         resolve();
       }
     });
@@ -126,13 +142,15 @@ function populateDataSegment(module: Module, compilation: any, source: Source): 
 }
 
 function loader(loaderPath: string) {
-    let options = {};
-    loaderOptions.push(options);
+  debug('generating loader', loaderPath);
 
-    return {
-      loader: require.resolve(loaderPath),
-      options
-    }
+  let options = {};
+  loaderOptions.push(options);
+
+  return {
+    loader: require.resolve(loaderPath),
+    options
+  }
 }
 
 export = GlimmerCompiler;

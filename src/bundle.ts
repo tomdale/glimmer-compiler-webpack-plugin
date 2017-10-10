@@ -53,10 +53,6 @@ export default class Bundle implements CompilerDelegate {
     this.helpers = options.helpers || {};
     this.resolver = resolver;
     this.bundleCompiler = new BundleCompiler(options.compilerDelegate || this);
-
-    if (options.compilerDelegate) {
-      options.compilerDelegate['bundleCompiler'] = this.bundleCompiler;
-    }
   }
 
   add(modulePath: string, templateSource: string, scope: Scope) {
@@ -92,7 +88,7 @@ export default class Bundle implements CompilerDelegate {
 
   hasComponentInScope(componentName: string, referrer: Specifier): boolean {
     let scope = expect(this.scopes.get(referrer), `could not find scope for ${referrer}`);
-    
+
     return componentName in scope;
   }
 
