@@ -27,9 +27,9 @@
   },
   "homepage": "https://github.com/tomdale/glimmer-compiler-webpack-plugin#readme",
   "devDependencies": {
-    "@glimmer/interfaces": "^0.29.0",
-    "@glimmer/util": "^0.29.0",
-    "@glimmer/wire-format": "^0.29.0",
+    "@glimmer/interfaces": "^0.29.4",
+    "@glimmer/util": "^0.29.4",
+    "@glimmer/wire-format": "^0.29.4",
     "@types/babel-core": "^6.25.1",
     "@types/babel-traverse": "^6.25.2",
     "@types/babylon": "^6.16.2",
@@ -50,8 +50,8 @@
     "webpack": "^3.5.5"
   },
   "dependencies": {
-    "@glimmer/bundle-compiler": "^0.29.3",
-    "@glimmer/syntax": "0.29.0",
+    "@glimmer/bundle-compiler": "^0.29.4",
+    "@glimmer/syntax": "^0.29.4",
     "babel-core": "^7.0.0-alpha.19",
     "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
     "babel-plugin-syntax-decorators": "7.0.0-alpha.19",
@@ -59,7 +59,6 @@
     "babel-traverse": "^7.0.0-alpha.19",
     "babel-types": "^7.0.0-alpha.19",
     "resolve": "^1.4.0",
-    "vue-compiler": "^2.0.0",
     "webpack-sources": "^1.0.1"
   }
 }
