@@ -4,7 +4,8 @@ import deindent from './helpers/deindent';
 
 describe('extracting templates', () => {
 
-  it('extracts templates in quotes', () => {
+  it('extracts templates in quotes', function() {
+    this.timeout(5000);
     let { code, template } = extractTemplate(deindent`
       import Component, { tracked } from '@glimmer/component';
       export default class extends Component {
