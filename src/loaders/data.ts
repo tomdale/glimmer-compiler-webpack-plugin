@@ -5,9 +5,9 @@ export = function(this: webpack.loader.LoaderContext, _source: string, _map: str
   // compiling.
   this.cacheable(false);
 
-  let { compiler } = this.query;
+  // let { compiler } = this.query;
 
-  compiler.addDataSegmentModule(this._module);
-
-  return '';
+  // compiler.addDataSegmentModule(this._module);
+  return _source;
+  // return 'export const BAD_TABLE = "foo";';
 }

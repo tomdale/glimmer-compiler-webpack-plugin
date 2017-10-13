@@ -49,10 +49,12 @@ describe('component loader', () => {
           '\n  Yo yo '
         ].sort());
 
-        console.log(readFileSync(path.join(config.output.path, 'bundle.js'), 'utf8'))
+        let results = require(path.join(config.output.path, 'bundle.js'));
+        console.log(results);
+        // console.log(readFileSync(path.join(config.output.path, 'bundle.js'), 'utf8'), dataSegment.table)
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segement represents how many items where compiled into the buffer
-        expect(dataSegment.table.length / 4).to.equal(3);
+        expect(dataSegment.table.length / 4).to.equal(5);
         done();
       }
     });

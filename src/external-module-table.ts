@@ -11,9 +11,11 @@ export default class ExternalModuleTable {
   projectPath: string;
 
   constructor(private map: SpecifierMap, protected dataSegment: DataSegment, private options: { mode?: string, inputPath?: string } = {}) {
-    this.project = new Project(options.inputPath!);
-    this.rootName = this.project.rootName;
-    this.projectPath = options.inputPath!;
+    if (options.mode === 'module-unification') {
+      this.project = new Project(options.inputPath!);
+      this.rootName = this.project.rootName;
+      this.projectPath = options.inputPath!;
+    }
   }
 
   buildSpecifierTable() {
