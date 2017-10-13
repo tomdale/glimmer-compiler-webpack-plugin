@@ -4,7 +4,7 @@ const GlimmerCompiler = require('../../../src');
 const path = require('path');
 
 module.exports = {
-  context: path.resolve(__dirname, 'src'),
+  context: path.resolve(__dirname),
   entry: './index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -13,12 +13,15 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        use: GlimmerCompiler.component()
+        test: /\.hbs$/,
+        use: GlimmerCompiler.template()
       }
     ]
   },
   plugins: [
-    new GlimmerCompiler({ output: 'templates.gbx'}),
+    new GlimmerCompiler({
+      output: 'templates.gbx',
+      mode: 'module-unification'
+    }),
   ]
 }

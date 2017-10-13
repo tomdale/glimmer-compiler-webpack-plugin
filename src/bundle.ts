@@ -56,6 +56,8 @@ export default class Bundle implements CompilerDelegate {
   }
 
   add(modulePath: string, templateSource: string, scope: Scope) {
+    console.log('add', { modulePath });
+
     let specifier = specifierFor(modulePath, 'default');
     let block = this.bundleCompiler.add(specifier, templateSource);
 

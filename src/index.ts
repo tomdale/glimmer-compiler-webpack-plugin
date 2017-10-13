@@ -6,6 +6,8 @@ import Bundle, { Specifiers } from './bundle';
 import Scope from './scope';
 import { CompilerDelegate } from '@glimmer/bundle-compiler';
 import Debug = require('debug');
+import ModuleUnificationDelegate from './compiler-delegates/module-unification';
+import { expect } from '@glimmer/util';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -13,6 +15,7 @@ let loaderOptions: any[] = [];
 
 interface CompilerOptions {
   output: string;
+  mode?: 'tom-mode' | 'module-unification'
   helpers?: Specifiers;
   compilerDelegate?: CompilerDelegate;
 }
@@ -42,14 +45,13 @@ class GlimmerCompiler {
    */
   private dataSegmentModules: Module[] = [];
 
-  constructor(options: string | CompilerOptions) {
-    if (typeof options === 'string') {
-      this.compilerOptions = { output: options };
-    } else {
-      this.compilerOptions = options;
-    }
-
+  constructor(options: CompilerOptions) {
+    this.compilerOptions = options;
     this.outputFile = this.compilerOptions.output;
+
+    if (options.mode && options.compilerDelegate) {
+      throw new Error(`You can provide a mode or a compiler delegate, but not both.`);
+    }
 
     for (let opts of loaderOptions) {
       opts.compiler = this;
@@ -76,13 +78,21 @@ class GlimmerCompiler {
 
   apply(compiler: Compiler) {
     debug('applying plugin');
+    let inputPath = expect(compiler.options.context, 'expected compiler to have a context');
+    console.log('INPUT PATH', inputPath);
 
     compiler.plugin('this-compilation', (compilation: any) => {
       debug('beginning compilation');
 
       let resolver = compilation.resolvers.normal;
 
-      this.bundle = new Bundle(resolver, { compilerDelegate: this.compilerOptions.compilerDelegate });
+      let compilerDelegate = this.compilerOptions.compilerDelegate;
+      if (this.compilerOptions.mode === 'module-unification') {
+        compilerDelegate = new ModuleUnificationDelegate(inputPath);
+      }
+      this.bundle = new Bundle(resolver, {
+        compilerDelegate
+      });
       this.dataSegmentModules = [];
 
       compilation.plugin('optimize-tree', (_chunks: any[], _modules: Module[], cb: Callback) => {
