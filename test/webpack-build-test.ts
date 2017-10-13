@@ -42,12 +42,14 @@ describe('component loader', () => {
       } else {
         let dataSegment = JSON.parse(readFileSync(path.join(config.output.path, 'templates.gbx.json'), 'utf8'));
 
-        let out = dataSegment.pool.strings.sort()
+        let out = dataSegment.pool.strings.sort();
 
         expect(out).to.deep.equal([
-          'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n'
+          'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n',
+          '\n  Yo yo '
         ].sort());
 
+        console.log(readFileSync(path.join(config.output.path, 'bundle.js'), 'utf8'))
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segement represents how many items where compiled into the buffer
         expect(dataSegment.table.length / 4).to.equal(3);

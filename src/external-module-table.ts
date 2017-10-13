@@ -1,10 +1,57 @@
 import { SpecifierMap, Specifier } from "@glimmer/bundle-compiler";
 import { dict, Dict } from '@glimmer/util';
 import { Source, RawSource } from 'webpack-sources';
-import { join, basename, dirname, relative } from 'path';
+import { join, basename, dirname, relative, extname } from 'path';
+import { DataSegment } from "./bundle";
+import { Project } from 'glimmer-analyzer';
 
 export default class ExternalModuleTable {
-  constructor(private map: SpecifierMap, private options: { mode?: string, inputPath?: string } = {}) {}
+  project: Project;
+  rootName: string;
+  projectPath: string;
+
+  constructor(private map: SpecifierMap, protected dataSegment: DataSegment, private options: { mode?: string, inputPath?: string } = {}) {
+    this.project = new Project(options.inputPath!);
+    this.rootName = this.project.rootName;
+    this.projectPath = options.inputPath!;
+  }
+
+  buildSpecifierTable() {
+    let table = dict<number>();
+
+    this.map.byHandle.forEach((specifier, handle) => {
+      let muSpecifier = this.getMUSpecifier(specifier.module);
+      table[muSpecifier] = handle;
+    });
+
+    return JSON.stringify(table);
+  }
+
+  getMUSpecifier(relativePath: string, type: string = 'template') {
+    let { rootName, projectPath } = this;
+
+    relativePath = relative(projectPath, relativePath);
+
+    let pathParts = relativePath.split('/');
+    pathParts.shift();
+
+    // TODO - should use module map config to be rigorous
+    if (pathParts[pathParts.length - 1] === 'template.hbs') {
+      pathParts.pop();
+    }
+
+    if (extname(pathParts[pathParts.length - 1]) === '.hbs') {
+      let fileName = pathParts.pop();
+
+      pathParts.push(basename(fileName!, '.hbs'));
+    }
+
+    if (pathParts[0] === 'ui') {
+      pathParts.shift();
+    }
+
+    return `${type}:/${rootName}/${pathParts.join('/')}`;
+  }
 
   toSource(relativePath: string): Source {
     let modules: Specifier[] = [];
@@ -22,14 +69,10 @@ export default class ExternalModuleTable {
 
       let moduleSpecifier;
       if (this.options.mode === 'module-unification') {
-        let inputPath = this.options.inputPath!;
         let cwd = process.cwd();
-        console.log({ inputPath, relativePath, cwd, module});
         let tablePath = join(cwd, relativePath);
         let modulePath = join(cwd, module);
-        console.log({ tablePath, modulePath });
         moduleSpecifier = getModuleSpecifier(tablePath, modulePath);
-        console.log('ModuleSpec ->', moduleSpecifier)
       } else {
         moduleSpecifier = getModuleSpecifier(relativePath, module);
       }
@@ -44,7 +87,12 @@ export default class ExternalModuleTable {
 const EXTERNAL_MODULE_TABLE = [${identifiers.join(',')}];
 
 export default EXTERNAL_MODULE_TABLE;
+
+export const SPECIFIER_MAP = ${JSON.stringify(this.buildSpecifierTable())};
+
+export const DATA_SEGMENT = ${JSON.stringify(JSON.stringify(this.dataSegment))};
 `;
+
     return new RawSource(source);
   }
 }
@@ -60,6 +108,9 @@ function getModuleSpecifier(from: string, to: string): string {
 function getImportClause(name: string, id: string) {
   return (name === 'default') ? id : `{ ${name} as ${id} }`;
 }
+
+
+
 
 /**
  * Generates a valid, unique JavaScript identifier for a module path.

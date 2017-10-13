@@ -11,6 +11,7 @@ import { expect } from '@glimmer/util';
 import ComponentRegistry from './component-registry';
 import Scope from './scope';
 import ExternalModuleTable from './external-module-table';
+import { ConstantPool } from '@glimmer/program';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -35,6 +36,13 @@ interface BundleOptions {
   compilerDelegate?: CompilerDelegate;
   mode?: string;
   inputPath?: string;
+}
+
+export interface DataSegment {
+  pool: ConstantPool;
+  handle: number;
+  table: number[];
+  entryHandle: number;
 }
 
 /**
@@ -74,23 +82,23 @@ export default class Bundle implements CompilerDelegate {
     let map = bundleCompiler.getSpecifierMap();
     let entry = specifierFor('./src/glimmer/components/Entry.ts', 'default');
     let { mode, inputPath } = this.options;
-    let table = new ExternalModuleTable(map, {
-      mode,
-      inputPath
-    });
+    let entryHandle = expect(map.vmHandleBySpecifier.get(entry) || -1, 'Should have entry handle');
 
-    let entryHandle = map.vmHandleBySpecifier.get(entry);
-
-    let json = {
+    let dataSegment = {
       handle: heap.handle,
       table: heap.table,
       pool,
       entryHandle
     };
 
+    let table = new ExternalModuleTable(map, dataSegment, {
+      mode,
+      inputPath
+    });
+
     return {
       bytecode: new RawSource(heap.buffer as any),
-      constants: new ConcatSource(JSON.stringify(json)),
+      constants: new ConcatSource(JSON.stringify(dataSegment)),
       table
     }
   }
