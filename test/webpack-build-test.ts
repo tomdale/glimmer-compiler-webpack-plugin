@@ -40,14 +40,17 @@ describe('component loader', () => {
       } else if (stats.hasErrors()) {
         done(new Error(stats.toString()));
       } else {
-        let constantPool = JSON.parse(readFileSync(path.join(config.output.path, 'templates.gbx.json'), 'utf8')).pool.tables;
-        console.log(constantPool);
-        // let binaryOutput = readFileSync(path.join(config.output.path, 'templates.gbx'));
-        // let compiledTemplates = new Uint16Array(binaryOutput);
+        let dataSegment = JSON.parse(readFileSync(path.join(config.output.path, 'templates.gbx.json'), 'utf8'));
 
-        // expect(Array.from(compiledTemplates)).to.deep.equal(
-        //   [25,1,0,0,31,0,22,1,1,0,32,0,22,1,2,0,20,0,25,1,3,0,31,0,22,1,4,0,32,0,22,1,2,0,20,0]
-        // );
+        let out = dataSegment.pool.strings.sort()
+
+        expect(out).to.deep.equal([
+          'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n'
+        ].sort());
+
+        // A table is a tracking object for the buffer and should be divisble by 4
+        // Each segement represents how many items where compiled into the buffer
+        expect(dataSegment.table.length / 4).to.equal(3);
         done();
       }
     });

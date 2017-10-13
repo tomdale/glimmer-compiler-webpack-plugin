@@ -33,6 +33,8 @@ export interface Specifiers {
 interface BundleOptions {
   helpers?: Specifiers;
   compilerDelegate?: CompilerDelegate;
+  mode?: string;
+  inputPath?: string;
 }
 
 /**
@@ -49,7 +51,8 @@ export default class Bundle implements CompilerDelegate {
   protected serializedTemplateBlocks = new Map<Specifier, SerializedTemplateBlock>();
   protected helpers: Specifiers;
 
-  constructor(resolver: Resolver, options: BundleOptions = {}) {
+  constructor(resolver: Resolver, private options: BundleOptions = {}) {
+    this.options = options;
     this.helpers = options.helpers || {};
     this.resolver = resolver;
     this.bundleCompiler = new BundleCompiler(options.compilerDelegate || this);
@@ -70,7 +73,11 @@ export default class Bundle implements CompilerDelegate {
     let { heap, pool } = bundleCompiler.compile();
     let map = bundleCompiler.getSpecifierMap();
     let entry = specifierFor('./src/glimmer/components/Entry.ts', 'default');
-    let table = new ExternalModuleTable(map);
+    let { mode, inputPath } = this.options;
+    let table = new ExternalModuleTable(map, {
+      mode,
+      inputPath
+    });
 
     let entryHandle = map.vmHandleBySpecifier.get(entry);
 

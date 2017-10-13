@@ -1,10 +1,10 @@
 import { SpecifierMap, Specifier } from "@glimmer/bundle-compiler";
 import { dict, Dict } from '@glimmer/util';
 import { Source, RawSource } from 'webpack-sources';
-import { join, basename, extname, dirname, relative } from 'path';
+import { join, basename, dirname, relative } from 'path';
 
 export default class ExternalModuleTable {
-  constructor(private map: SpecifierMap) {}
+  constructor(private map: SpecifierMap, private options: { mode?: string, inputPath?: string } = {}) {}
 
   toSource(relativePath: string): Source {
     let modules: Specifier[] = [];
@@ -19,7 +19,20 @@ export default class ExternalModuleTable {
     let imports = modules.map(({ module, name }, i) => {
       let id = getIdentifier(seen, module);
       let importClause = getImportClause(name, id);
-      let moduleSpecifier = getModuleSpecifier(relativePath, module);
+
+      let moduleSpecifier;
+      if (this.options.mode === 'module-unification') {
+        let inputPath = this.options.inputPath!;
+        let cwd = process.cwd();
+        console.log({ inputPath, relativePath, cwd, module});
+        let tablePath = join(cwd, relativePath);
+        let modulePath = join(cwd, module);
+        console.log({ tablePath, modulePath });
+        moduleSpecifier = getModuleSpecifier(tablePath, modulePath);
+        console.log('ModuleSpec ->', moduleSpecifier)
+      } else {
+        moduleSpecifier = getModuleSpecifier(relativePath, module);
+      }
 
       identifiers[i] = id;
 
@@ -38,7 +51,7 @@ export default EXTERNAL_MODULE_TABLE;
 
 function getModuleSpecifier(from: string, to: string): string {
   let basedir = dirname(from);
-  let target = join(dirname(to), basename(to, extname(to)));
+  let target = join(dirname(to), basename(to));
   let specifier = relative(basedir, target);
 
   return JSON.stringify(`./${specifier}`);
@@ -50,7 +63,7 @@ function getImportClause(name: string, id: string) {
 
 /**
  * Generates a valid, unique JavaScript identifier for a module path.
- * 
+ *
  * @param {array} seen an array of identifiers used in this scope
  * @param {string} modulePath the module path
  * @returns {string} identifier a valid JavaScript identifier

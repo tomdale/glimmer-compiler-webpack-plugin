@@ -8,6 +8,7 @@ import { CompilerDelegate } from '@glimmer/bundle-compiler';
 import Debug = require('debug');
 import ModuleUnificationDelegate from './compiler-delegates/module-unification';
 import { expect } from '@glimmer/util';
+import { relative } from 'path';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -23,6 +24,7 @@ interface CompilerOptions {
 interface Module {
   _source: Source;
   parser: any;
+  resource: string;
 }
 
 interface Callback {
@@ -91,6 +93,8 @@ class GlimmerCompiler {
         compilerDelegate = new ModuleUnificationDelegate(inputPath);
       }
       this.bundle = new Bundle(resolver, {
+        mode: this.compilerOptions.mode,
+        inputPath,
         compilerDelegate
       });
       this.dataSegmentModules = [];
@@ -101,7 +105,8 @@ class GlimmerCompiler {
 
         let promises: Promise<void>[] = [];
         for (let module of this.dataSegmentModules) {
-          let promise = populateDataSegment(module, compilation, table.toSource('./src/glimmer/table.ts'));
+          let relativePath = relative(process.cwd(), module.resource);
+          let promise = populateDataSegment(module, compilation, table.toSource(relativePath));
           promises.push(promise);
         }
 

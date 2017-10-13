@@ -15,6 +15,10 @@ module.exports = {
       {
         test: /\.hbs$/,
         use: GlimmerCompiler.template()
+      },
+      {
+        test: /table\.js$/,
+        use: GlimmerCompiler.data()
       }
     ]
   },
