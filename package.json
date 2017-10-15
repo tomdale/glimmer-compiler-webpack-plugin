@@ -58,7 +58,7 @@
     "babel-plugin-syntax-typescript": "^7.0.0-alpha.19",
     "babel-traverse": "^7.0.0-alpha.19",
     "babel-types": "^7.0.0-alpha.19",
-    "glimmer-analyzer": "^0.2.2",
+    "glimmer-analyzer": "^0.3.1",
     "resolve": "^1.4.0",
     "webpack-sources": "^1.0.1"
   }
