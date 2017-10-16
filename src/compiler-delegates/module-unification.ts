@@ -139,13 +139,9 @@ export default { moduleTable, heapTable, pool, specifierMap, symbolTables };`
 
   generateSymbolTables() {
     let symbolTables: Dict<SymbolTable> = {};
-    let project = this.project;
 
     for (let [specifier, table] of this.specifiersToSymbolTable) {
-      let muSpecifier = expect(
-        project.specifierForPath(specifier.module),
-        `expected to have an MU specifier for module ${specifier.module}`
-      );
+      let muSpecifier = this.muSpecifierForSpecifier(specifier);
       symbolTables[muSpecifier] = table;
     }
 
@@ -153,19 +149,30 @@ export default { moduleTable, heapTable, pool, specifierMap, symbolTables };`
   }
 
   generateSpecifierMap(map: SpecifierMap) {
-    let project = this.project;
-
     let entries = Array.from(map.vmHandleBySpecifier.entries());
     let specifierMap: Dict<number> = {};
 
     for (let [specifier, handle] of entries) {
-      let muSpecifier = expect(
-        project.specifierForPath(specifier.module),
-        `expected to have a MU specifier for module ${specifier.module}`);
+      let muSpecifier = this.muSpecifierForSpecifier(specifier);
+
       specifierMap[muSpecifier] = handle;
     }
-    
+
     return `const specifierMap = ${inlineJSON(specifierMap)};`;
+  }
+
+  muSpecifierForSpecifier(specifier: Specifier): string {
+    let { module } = specifier;
+    let project = this.project;
+
+    if (module === '__BUILTIN__') {
+      return module;
+    }
+
+    return expect(
+      project.specifierForPath(specifier.module),
+      `expected to have a MU specifier for module ${specifier.module}`
+    );
   }
 
   generateHeapTable(table: number[]) {
@@ -182,6 +189,7 @@ const pool = ${inlineJSON(pool)};
 
   generateExternalModuleTable(map: SpecifierMap) {
     let project = this.project;
+    let self = this;
 
     // First, convert the map into an array of specifiers, using the handle
     // as the index.
@@ -194,7 +202,8 @@ const pool = ${inlineJSON(pool)};
     return source;
 
     function normalizeModulePaths(moduleSpecifier: Specifier) {
-      let specifier = expect(project.specifierForPath(moduleSpecifier.module), `expected specifier for path ${moduleSpecifier.module}`);
+      let specifier = self.muSpecifierForSpecifier(moduleSpecifier);
+
       debug('resolved MU specifier; specifier=%s', specifier);
 
       let [type] = specifier.split(':');
@@ -204,6 +213,8 @@ const pool = ${inlineJSON(pool)};
           return getComponentImport(specifier);
         case 'helper':
           return moduleSpecifier;
+        case '__BUILTIN__':
+          return null;
         default:
           throw new Error(`Unsupported type in specifier map: ${type}`);
       }
