@@ -22,6 +22,7 @@ type Mode = 'basic' | 'module-unification';
 
 interface PluginOptions {
   output: string;
+  context?: string;
   mode?: Mode;
   helpers?: Specifiers;
   CompilerDelegate?: Constructor<BundleCompilerDelegate>;
@@ -93,7 +94,7 @@ class GlimmerCompiler {
 
   apply(compiler: Compiler) {
     debug('applying plugin');
-    let inputPath = expect(compiler.options.context, 'expected compiler to have a context');
+    let inputPath = expect(this.options.context || compiler.options.context, 'expected compiler to have a context');
 
     compiler.plugin('this-compilation', (compilation: any) => {
       debug('beginning compilation');

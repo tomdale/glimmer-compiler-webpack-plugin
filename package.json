@@ -1,31 +1,50 @@
 {
-  "name": "glimmer-compiler-webpack-plugin",
-  "version": "0.2.0",
-  "description": "webpack plugin for compiling Glimmer components",
-  "main": "dist/src/index.js",
-  "scripts": {
-    "test": "mocha",
-    "prepare": "tsc"
+  "_from": "glimmer-compiler-webpack-plugin@0.2.0",
+  "_id": "glimmer-compiler-webpack-plugin@0.2.0",
+  "_inBundle": false,
+  "_integrity": "sha1-XHUyUFQNH4Fr/etQCTXEgilSTN4=",
+  "_location": "/glimmer-compiler-webpack-plugin",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "glimmer-compiler-webpack-plugin@0.2.0",
+    "name": "glimmer-compiler-webpack-plugin",
+    "escapedName": "glimmer-compiler-webpack-plugin",
+    "rawSpec": "0.2.0",
+    "saveSpec": null,
+    "fetchSpec": "0.2.0"
   },
-  "files": [
-    "dist"
+  "_requiredBy": [
+    "/"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tomdale/glimmer-compiler-webpack-plugin.git"
+  "_resolved": "https://registry.npmjs.org/glimmer-compiler-webpack-plugin/-/glimmer-compiler-webpack-plugin-0.2.0.tgz",
+  "_shasum": "5c753250540d1f816bfdeb500935c48229524cde",
+  "_spec": "glimmer-compiler-webpack-plugin@0.2.0",
+  "_where": "/export/content/data/ELR_REQUESTS/9442",
+  "author": {
+    "name": "Tom Dale",
+    "email": "tom@tomdale.net"
   },
-  "keywords": [
-    "webpack",
-    "loader",
-    "glimmer",
-    "glimmer.js"
-  ],
-  "author": "Tom Dale <tom@tomdale.net>",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/tomdale/glimmer-compiler-webpack-plugin/issues"
   },
-  "homepage": "https://github.com/tomdale/glimmer-compiler-webpack-plugin#readme",
+  "bundleDependencies": false,
+  "dependencies": {
+    "@glimmer/bundle-compiler": "^0.29.4",
+    "@glimmer/syntax": "^0.29.4",
+    "babel-core": "^7.0.0-alpha.19",
+    "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
+    "babel-plugin-syntax-decorators": "7.0.0-alpha.19",
+    "babel-plugin-syntax-typescript": "^7.0.0-alpha.19",
+    "babel-traverse": "^7.0.0-alpha.19",
+    "babel-types": "^7.0.0-alpha.19",
+    "glimmer-analyzer": "^0.3.1",
+    "resolve": "^1.4.0",
+    "webpack-sources": "^1.0.1"
+  },
+  "deprecated": false,
+  "description": "webpack plugin for compiling Glimmer components",
   "devDependencies": {
     "@glimmer/interfaces": "^0.29.4",
     "@glimmer/util": "^0.29.4",
@@ -49,17 +68,26 @@
     "typescript": "^2.4.2",
     "webpack": "^3.5.5"
   },
-  "dependencies": {
-    "@glimmer/bundle-compiler": "^0.29.4",
-    "@glimmer/syntax": "^0.29.4",
-    "babel-core": "^7.0.0-alpha.19",
-    "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
-    "babel-plugin-syntax-decorators": "7.0.0-alpha.19",
-    "babel-plugin-syntax-typescript": "^7.0.0-alpha.19",
-    "babel-traverse": "^7.0.0-alpha.19",
-    "babel-types": "^7.0.0-alpha.19",
-    "glimmer-analyzer": "^0.3.1",
-    "resolve": "^1.4.0",
-    "webpack-sources": "^1.0.1"
-  }
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/tomdale/glimmer-compiler-webpack-plugin#readme",
+  "keywords": [
+    "webpack",
+    "loader",
+    "glimmer",
+    "glimmer.js"
+  ],
+  "license": "MIT",
+  "main": "dist/src/index.js",
+  "name": "glimmer-compiler-webpack-plugin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomdale/glimmer-compiler-webpack-plugin.git"
+  },
+  "scripts": {
+    "prepare": "tsc",
+    "test": "mocha"
+  },
+  "version": "0.2.0"
 }
