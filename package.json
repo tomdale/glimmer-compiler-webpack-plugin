@@ -1,6 +1,6 @@
 {
   "name": "glimmer-compiler-webpack-plugin",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "webpack plugin for compiling Glimmer components",
   "main": "dist/src/index.js",
   "scripts": {
