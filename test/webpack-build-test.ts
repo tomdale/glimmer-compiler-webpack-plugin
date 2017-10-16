@@ -53,14 +53,13 @@ describe('component loader', () => {
           '\n  Yo yo '
         ].sort());
 
-        expect(Object.keys(bundle.specifierMap).sort()).to.deep.equal([
+        expect(sortedKeys(bundle.specifierMap)).to.deep.equal([
           'template:/such-webpack/components/DropDown',
           'template:/such-webpack/components/OtherComponent',
           'template:/such-webpack/components/UserNav'
         ]);
 
-        let values = Object.values(bundle.specifierMap).sort((a, b) => a - b);
-        expect(values).to.deep.equal([
+        expect(sortedValues(bundle.specifierMap)).to.deep.equal([
           4, 12, 16
         ]);
 
@@ -97,3 +96,17 @@ describe('component loader', () => {
   });
 
 });
+
+function sortedKeys(obj: {}): string[] {
+  return Object.keys(obj).sort();
+}
+
+function sortedValues(obj: { [s: string]: number }): number[] {
+  let values: number[] = [];
+  for (let key in obj) {
+    values.push(obj[key]);
+  }
+
+  return values
+    .sort((a, b) => a - b);
+}
