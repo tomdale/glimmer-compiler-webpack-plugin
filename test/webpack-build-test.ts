@@ -49,9 +49,9 @@ describe('component loader', () => {
           '\n  Yo yo '
         ].sort());
 
-        let results = require(path.join(config.output.path, 'bundle.js'));
-        console.log(results);
-        // console.log(readFileSync(path.join(config.output.path, 'bundle.js'), 'utf8'), dataSegment.table)
+        let { EXTERNAL_MODULE_TABLE } = require(path.join(config.output.path, 'bundle.js')).default;
+        expect(EXTERNAL_MODULE_TABLE.length).to.equal(2);
+
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segement represents how many items where compiled into the buffer
         expect(dataSegment.table.length / 4).to.equal(5);
