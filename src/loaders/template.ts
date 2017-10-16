@@ -14,5 +14,5 @@ export = function(this: webpack.loader.LoaderContext, source: string, _map: stri
 
   compiler.addComponent(relativePath, source);
 
-  return '';
+  return 'export default {};';
 }

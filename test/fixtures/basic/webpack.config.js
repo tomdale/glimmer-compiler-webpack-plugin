@@ -19,6 +19,9 @@ module.exports = {
     ]
   },
   plugins: [
-    new GlimmerCompiler('templates.gbx'),
+    new GlimmerCompiler({
+      mode: 'basic',
+      output: 'templates.gbx'
+    }),
   ]
 }

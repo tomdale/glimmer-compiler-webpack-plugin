@@ -17,7 +17,7 @@ export = function(this: webpack.loader.LoaderContext, source: string, _map: stri
   let { template, code, scope } = extractTemplate(source);
 
   if (template) {
-    compiler.addComponent(relativePath, template, scope);
+    compiler.addComponent(relativePath, template, { scope });
   }
 
   return code;
