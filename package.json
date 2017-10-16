@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "test": "mocha",
-    "build": "tsc"
+    "prepare": "tsc"
   },
   "files": [
     "dist"
