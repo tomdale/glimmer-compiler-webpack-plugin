@@ -5,10 +5,12 @@ import { Project } from 'glimmer-analyzer';
 import { Specifier, specifierFor, BundleCompiler, SpecifierMap } from '@glimmer/bundle-compiler';
 import { CompilableTemplate, CompileOptions } from '@glimmer/opcode-compiler';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
-import { expect } from '@glimmer/util';
+import { expect, Dict } from '@glimmer/util';
 
 import { BundleCompilerDelegate } from '../bundle';
 import { getImportStatements } from './utils/codegen';
+import { ConstantPool } from '@glimmer/program';
+import { SymbolTable } from '@glimmer/interfaces';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:mu-delegate');
 
@@ -27,6 +29,7 @@ const BUILTINS = ['action', 'if'];
 export default class ModuleUnificationCompilerDelegate implements BundleCompilerDelegate {
   public bundleCompiler: BundleCompiler;
   protected project: Project;
+  protected specifiersToSymbolTable: Map<Specifier, SymbolTable> = new Map();
 
   constructor(protected projectPath: string) {
     debug('initialized MU compiler delegate; project=%s', projectPath);
@@ -39,7 +42,15 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
 
     debug('add; path=%s; specifier=%s; meta=%o; template=%o', modulePath, normalizedPath, meta, templateSource);
 
-    this.bundleCompiler.add(specifier, templateSource);
+    let block = this.bundleCompiler.add(specifier, templateSource);
+
+    let symbolTable = {
+      hasEval: block.hasEval,
+      symbols: block.symbols,
+      referrer: specifier
+    };
+
+    this.specifiersToSymbolTable.set(specifier, symbolTable);
   }
 
   hasComponentInScope(name: string, referrer: Specifier) {
@@ -104,9 +115,72 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
     return CompilableTemplate.topLevel(block, options);
   }
 
-  generateDataSegment(map: SpecifierMap) {
+  generateDataSegment(map: SpecifierMap, pool: ConstantPool, table: number[]) {
     debug('generating data segment');
 
+    let externalModuleTable = this.generateExternalModuleTable(map);
+    let constantPool = this.generateConstantPool(pool);
+    let heapTable = this.generateHeapTable(table);
+    let specifierMap = this.generateSpecifierMap(map);
+    let symbolTables = this.generateSymbolTables();
+
+    let source = `
+${externalModuleTable}
+${heapTable}
+${constantPool}
+${specifierMap}
+${symbolTables}
+
+export default { moduleTable, heapTable, pool, specifierMap, symbolTables };`
+    debug('generated data segment; source=%s', source);
+
+    return source;
+  }
+
+  generateSymbolTables() {
+    let symbolTables: Dict<SymbolTable> = {};
+    let project = this.project;
+
+    for (let [specifier, table] of this.specifiersToSymbolTable) {
+      let muSpecifier = expect(
+        project.specifierForPath(specifier.module),
+        `expected to have an MU specifier for module ${specifier.module}`
+      );
+      symbolTables[muSpecifier] = table;
+    }
+
+    return `const symbolTables = ${inlineJSON(symbolTables)};`;
+  }
+
+  generateSpecifierMap(map: SpecifierMap) {
+    let project = this.project;
+
+    let entries = Array.from(map.vmHandleBySpecifier.entries());
+    let specifierMap: Dict<number> = {};
+
+    for (let [specifier, handle] of entries) {
+      let muSpecifier = expect(
+        project.specifierForPath(specifier.module),
+        `expected to have a MU specifier for module ${specifier.module}`);
+      specifierMap[muSpecifier] = handle;
+    }
+    
+    return `const specifierMap = ${inlineJSON(specifierMap)};`;
+  }
+
+  generateHeapTable(table: number[]) {
+    return `
+const heapTable = ${inlineJSON(table)};
+`
+  }
+
+  generateConstantPool(pool: ConstantPool) {
+    return `
+const pool = ${inlineJSON(pool)};
+`;
+  }
+
+  generateExternalModuleTable(map: SpecifierMap) {
     let project = this.project;
 
     // First, convert the map into an array of specifiers, using the handle
@@ -115,9 +189,8 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
       .map(normalizeModulePaths)
       .filter(m => m) as Specifier[];
 
-    let source = generateSource(modules);
+    let source = generateExternalModuleTable(modules);
 
-    debug('generated data segment; source=%s', source);
     return source;
 
     function normalizeModulePaths(moduleSpecifier: Specifier) {
@@ -163,19 +236,18 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
   }
 };
 
-function generateSource(modules: Specifier[]) {
+function generateExternalModuleTable(modules: Specifier[]) {
   let { imports, identifiers } = getImportStatements(modules);
 
   return `
 ${imports.join('\n')}
 
-const EXTERNAL_MODULE_TABLE = [${identifiers.join(',')}];
-
-export default { EXTERNAL_MODULE_TABLE };
+const moduleTable = [${identifiers.join(',')}];
 `;
-// export const SPECIFIER_MAP = ${JSON.stringify(this.buildSpecifierTable())};
-// export const DATA_SEGMENT = ${JSON.stringify(JSON.stringify(this.dataSegment))};
+}
 
+function inlineJSON(data: any) {
+  return `JSON.parse(${JSON.stringify(JSON.stringify(data))})`;
 }
 
 function toSparseArray<T>(map: Map<number, T>): T[] {

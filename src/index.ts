@@ -98,49 +98,30 @@ class GlimmerCompiler {
     compiler.plugin('this-compilation', (compilation: any) => {
       debug('beginning compilation');
 
-      let resolver = compilation.resolvers.normal;
-      let delegate = this.getCompilerDelegateFor(inputPath);
+      // At the start of a compilation, reset bundle state so we can create
+      // a new bundle.
+      let dataSegmentModules = this.dataSegmentModules = [];
+      this.bundle = this.getBundleFor(inputPath);
 
-      this.bundle = new Bundle(resolver, {
-        inputPath,
-        delegate
-      });
-
-      this.dataSegmentModules = [];
-
-      let compiled = false;
-
-      compilation.plugin('need-additional-seal', () => {
-        if (compiled) { return false; }
-
-        debug('requesting additional seal');
-        resetCompilation(compilation);
-
-        return compiled = true;
-      });
-
-      compilation.plugin('after-seal', (cb: any) => {
-        debug('seal complete');
-        cb();
-      });
+      // We mutate the source code of the data segment module during the
+      // optimize-tree phase, which requires us to reseal the compilation in
+      // order to produce working output. This flag tracks whether the second
+      // seal has happened, so we don't end up in an infinite loop requesting
+      // reseals.
+      let resealed = false;
 
       compilation.plugin('optimize-tree', (_chunks: any[], _modules: Module[], cb: Callback) => {
         debug('optimizing tree');
 
-        if (compiled) {
+        if (resealed) {
           debug('skipping second compile');
           return cb();
         }
 
         let { bytecode, constants, data } = this.bundle.compile();
 
-        let promises = this.dataSegmentModules.map(module => {
-          return populateDataSegment(module, compilation, data);
-        });
-
-        Promise.all(promises)
-          .catch(cb)
-          .then(() => cb());
+        rewriteDataSegmentModules(dataSegmentModules, compilation, data)
+          .then(cb, cb);
 
         compilation.plugin('additional-assets', (cb: () => void) => {
           debug('adding additional assets');
@@ -151,7 +132,24 @@ class GlimmerCompiler {
           cb();
         });
 
+        compilation.plugin('need-additional-seal', () => {
+          if (resealed) { return false; }
+
+          debug('requesting additional seal');
+          resetCompilation(compilation);
+
+          return resealed = true;
+        });
       })
+    });
+  }
+
+  protected getBundleFor(inputPath: string) {
+    let delegate = this.getCompilerDelegateFor(inputPath);
+
+    return new Bundle({
+      inputPath,
+      delegate
     });
   }
 
@@ -184,36 +182,19 @@ function resetCompilation(compilation: any) {
   compilation.finish();
 }
 
+function rewriteDataSegmentModules(modules: Module[], compilation: any, source: Source) {
+  let promises = modules.map(m => populateDataSegment(m, compilation, source));
+
+  return Promise.all(promises)
+    .then(() => undefined);
+}
+
 // Replaces the passed module's source code with the data segment we code
 // generate.
 function populateDataSegment(module: any, compilation: any, source: Source): Promise<void> {
   module.__table = source;
   return rebuildModule(module, compilation)
 }
-
-// function dumpModule(module: any, depth: number = 0) {
-//   if (depth === 0){
-//     console.log("DUMP MODULE TREE");
-//   }
-
-//   let pad = "  ".repeat(depth);
-//   let identifier = module.identifier();
-
-//   console.log(pad, identifier);
-//   console.log(pad, '  used', module.used);
-//   console.log(pad, '  used exports', module.usedExports);
-//   console.log(pad, '  provided exports', module.providedExports);
-
-//   let dependencies = new Set<any>();
-
-//   for (let dep of module.dependencies) {
-//     if (dep.module) { dependencies.add(dep.module); }
-//   }
-
-//   for (let mod of dependencies) {
-//     dumpModule(mod, depth+1);
-//   }
-// }
 
 function rebuildModule(module: any, compilation: any): Promise<void> {
   return new Promise((resolve, reject) => {

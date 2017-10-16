@@ -32,7 +32,7 @@ describe('component loader', () => {
   it('module unification', function(done) {
     this.timeout(5000);
     let config = require('./fixtures/module-unification/webpack.config.js');
-    config.output.path = tmpdir().name;
+    let outputPath = config.output.path = tmpdir().name;
 
     webpack(config).run((err, stats) => {
       if (err) {
@@ -40,21 +40,57 @@ describe('component loader', () => {
       } else if (stats.hasErrors()) {
         done(new Error(stats.toString()));
       } else {
-        let dataSegment = JSON.parse(readFileSync(path.join(config.output.path, 'templates.gbx.json'), 'utf8'));
+        let bundlePath = path.join(outputPath, 'bundle.js');
+        let bundle = require(bundlePath).default;
 
-        let out = dataSegment.pool.strings.sort();
+        // A table is a tracking object for the buffer and should be divisble by 4
+        // Each segment represents how many items where compiled into the buffer
+        expect(bundle.heapTable.length / 4).to.equal(5);
 
-        expect(out).to.deep.equal([
+        expect(bundle.moduleTable.length).to.equal(2);
+        expect(bundle.pool.strings.sort()).to.deep.equal([
           'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n',
           '\n  Yo yo '
         ].sort());
 
-        let { EXTERNAL_MODULE_TABLE } = require(path.join(config.output.path, 'bundle.js')).default;
-        expect(EXTERNAL_MODULE_TABLE.length).to.equal(2);
+        expect(Object.keys(bundle.specifierMap).sort()).to.deep.equal([
+          'template:/such-webpack/components/DropDown',
+          'template:/such-webpack/components/OtherComponent',
+          'template:/such-webpack/components/UserNav'
+        ]);
 
-        // A table is a tracking object for the buffer and should be divisble by 4
-        // Each segement represents how many items where compiled into the buffer
-        expect(dataSegment.table.length / 4).to.equal(5);
+        let values = Object.values(bundle.specifierMap).sort((a, b) => a - b);
+        expect(values).to.deep.equal([
+          4, 12, 16
+        ]);
+
+        expect(bundle.symbolTables).to.deep.equal({
+          'template:/such-webpack/components/DropDown': {
+            hasEval: false,
+            referrer: {
+              module: 'src/ui/components/DropDown/template.hbs',
+              name: 'default'
+            },
+            symbols: []
+          },
+          'template:/such-webpack/components/OtherComponent': {
+            hasEval: false,
+            referrer: {
+              module: 'src/ui/components/OtherComponent/template.hbs',
+              name: 'default'
+            },
+            symbols: []
+          },
+          'template:/such-webpack/components/UserNav': {
+            hasEval: false,
+            referrer: {
+              module: 'src/ui/components/UserNav/template.hbs',
+              name: 'default'
+            },
+            symbols: []
+          }
+        });
+
         done();
       }
     });

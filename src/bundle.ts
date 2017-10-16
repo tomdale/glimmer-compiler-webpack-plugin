@@ -16,7 +16,7 @@ export interface Specifiers {
 export interface BundleCompilerDelegate extends CompilerDelegate {
   bundleCompiler: BundleCompiler;
   add(modulePath: string, templateSource: string, meta: Metadata): void;
-  generateDataSegment(map: SpecifierMap): string;
+  generateDataSegment(map: SpecifierMap, pool: ConstantPool, heapTable: number[]): string;
 }
 
 interface BundleOptions {
@@ -46,7 +46,7 @@ export default class Bundle {
   protected registry = new ComponentRegistry();
   protected helpers: Specifiers;
 
-  constructor(protected resolver: Resolver, protected options: BundleOptions) {
+  constructor(protected options: BundleOptions) {
     let { delegate, helpers } = options;
 
     this.helpers = helpers || {};
@@ -73,7 +73,7 @@ export default class Bundle {
       entryHandle
     };
 
-    let data = this.delegate.generateDataSegment(map);
+    let data = this.delegate.generateDataSegment(map, pool, heap.table);
 
     return {
       bytecode: new RawSource(heap.buffer as any),
