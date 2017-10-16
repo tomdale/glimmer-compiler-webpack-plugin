@@ -1,7 +1,7 @@
 ## Usage
 
 ```js
-const GlimmerCompiler = require('compile-glimmer-webpack-plugin');
+const GlimmerCompiler = require('glimmer-compiler-webpack-plugin');
 
 module.exports = {
   module: {
