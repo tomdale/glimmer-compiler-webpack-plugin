@@ -40,7 +40,7 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
     let normalizedPath = this.pathRelativeFromProject(modulePath);
     let specifier = specifierFor(normalizedPath, 'default');
 
-    debug('add; path=%s; specifier=%s; meta=%o; template=%o', modulePath, normalizedPath, meta, templateSource);
+    debug('add; path=%s; specifier=%o; meta=%o; template=%o', modulePath, specifier, meta, templateSource);
 
     let block = this.bundleCompiler.add(specifier, templateSource);
 
@@ -69,6 +69,8 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
     let resolved = this.project.resolver.identify(`template:${name}`, referrerSpec);
 
     let resolvedSpecifier = this.getCompilerSpecifier(resolved);
+
+    debug('resolveComponentSpecifier; name=%s; referrer=%o; resolved=%o', name, referrer, resolvedSpecifier);
     return resolvedSpecifier;
   }
 
