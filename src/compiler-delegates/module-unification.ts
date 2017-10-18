@@ -26,7 +26,7 @@ const CAPABILITIES = {
   attributeHook: true
 };
 
-const BUILTINS = ['action', 'if'];
+const BUILTINS = ['action', 'if', '/css-blocks/components/state', '/css-blocks/components/concat'];
 
 export default class ModuleUnificationCompilerDelegate implements BundleCompilerDelegate {
   public bundleCompiler: BundleCompiler;
