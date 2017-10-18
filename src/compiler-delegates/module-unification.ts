@@ -119,6 +119,7 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
   }
 
   hasHelperInScope(helperName: string, referrer: Specifier) {
+    debug('hasHelperInScope; name=%s; referrer=%o', helperName, referrer);
     if (BUILTINS.indexOf(helperName) > -1) { return true; }
 
     let referrerSpec = this.project.specifierForPath(referrer.module) || undefined;
@@ -126,6 +127,8 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
   }
 
   resolveHelperSpecifier(helperName: string, referrer: Specifier) {
+    debug('resolveHelperSpecifier; name=%s; referrer=%o', helperName, referrer);
+
     if (BUILTINS.indexOf(helperName) > -1) {
       return specifierFor('__BUILTIN__', helperName);
     }
@@ -133,10 +136,15 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
     let referrerSpec = this.project.specifierForPath(referrer.module) || undefined;
     let resolvedSpec = this.project.resolver.identify(`helper:${helperName}`, referrerSpec);
 
+    if (!resolvedSpec) {
+      return specifierFor('__UNKNOWN__', 'default');
+    }
     return this.getCompilerSpecifier(resolvedSpec);
   }
 
-  getComponentLayout(_specifier: Specifier, block: SerializedTemplateBlock, options: CompileOptions<Specifier>) {
+  getComponentLayout(specifier: Specifier, block: SerializedTemplateBlock, options: CompileOptions<Specifier>) {
+    debug('building component layout; specifier=%o; block=%o', specifier, block);
+
     return CompilableTemplate.topLevel(block, options);
   }
 
