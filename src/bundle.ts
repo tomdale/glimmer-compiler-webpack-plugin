@@ -4,6 +4,7 @@ import { expect } from '@glimmer/util';
 
 import ComponentRegistry from './component-registry';
 import { ConstantPool } from '@glimmer/program';
+import { AST } from '@glimmer/syntax';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -16,6 +17,7 @@ export interface Specifiers {
 export interface BundleCompilerDelegate extends CompilerDelegate {
   bundleCompiler: BundleCompiler;
   add(modulePath: string, templateSource: string, meta: Metadata): void;
+  addAST(modulePath: string, ast: SerializedTemplateBlock): void;
   generateDataSegment(map: SpecifierMap, pool: ConstantPool, heapTable: number[]): string;
 }
 
@@ -57,6 +59,10 @@ export default class Bundle {
 
   add(modulePath: string, templateSource: string, meta: Metadata) {
     this.delegate.add(modulePath, templateSource, meta);
+  }
+
+  addAST(modulePath: string, ast: AST.Program) {
+    this.delegate.addAST(modulePath, ast);
   }
 
   compile() {

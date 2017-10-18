@@ -9,6 +9,7 @@ import Bundle, { Specifiers, BundleCompilerDelegate } from './bundle';
 import Scope from './scope';
 import BasicCompilerDelegate from './compiler-delegates/basic';
 import ModuleUnificationCompilerDelegate from './compiler-delegates/module-unification';
+import { AST } from '@glimmer/syntax';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -43,6 +44,7 @@ interface Callback {
 class GlimmerCompiler {
   static component() { return loader('./loaders/component'); }
   static template() { return loader('./loaders/template'); }
+  static ast() { return loader('./loaders/ast'); }
   static data() { return loader('./loaders/data'); }
 
   bundle: Bundle;
@@ -90,6 +92,10 @@ class GlimmerCompiler {
    */
   addComponent(path: string, template: string, scope: Scope) {
     this.bundle.add(path, template, scope);
+  }
+
+  addAST(path: string, ast: AST.Program) {
+    this.bundle.addAST(path, ast);
   }
 
   apply(compiler: Compiler) {

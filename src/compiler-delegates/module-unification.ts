@@ -6,11 +6,13 @@ import { Specifier, specifierFor, BundleCompiler, SpecifierMap } from '@glimmer/
 import { CompilableTemplate, CompileOptions } from '@glimmer/opcode-compiler';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
 import { expect, Dict } from '@glimmer/util';
+import { AST } from '@glimmer/syntax';
 
 import { BundleCompilerDelegate } from '../bundle';
 import { getImportStatements } from './utils/codegen';
 import { ConstantPool } from '@glimmer/program';
 import { SymbolTable } from '@glimmer/interfaces';
+import { TemplateCompiler } from "@glimmer/compiler";
 
 const debug = Debug('glimmer-compiler-webpack-plugin:mu-delegate');
 
@@ -43,6 +45,27 @@ export default class ModuleUnificationCompilerDelegate implements BundleCompiler
     debug('add; path=%s; specifier=%o; meta=%o; template=%o', modulePath, specifier, meta, templateSource);
 
     let block = this.bundleCompiler.add(specifier, templateSource);
+
+    let symbolTable = {
+      hasEval: block.hasEval,
+      symbols: block.symbols,
+      referrer: specifier
+    };
+
+    this.specifiersToSymbolTable.set(specifier, symbolTable);
+  }
+
+  addAST(modulePath: string, ast: AST.Program) {
+    let normalizedPath = this.pathRelativeFromProject(modulePath);
+    let specifier = specifierFor(normalizedPath, 'default');
+
+    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+    let block = template.toJSON();
+
+    debug('add custom; path=%s; specifier=%o; ast=%o', modulePath, specifier, block);
+
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
+    this.bundleCompiler.addCustom(specifier, compilable);
 
     let symbolTable = {
       hasEval: block.hasEval,
