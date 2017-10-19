@@ -4,9 +4,12 @@ import { sync as resolveSync } from 'resolve';
 import { ICompilableTemplate, CompilableTemplate, CompileOptions } from '@glimmer/opcode-compiler';
 import { ComponentCapabilities, ProgramSymbolTable } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
-import { specifierFor, BundleCompiler, CompilerDelegate, Specifier } from '@glimmer/bundle-compiler';
+import { specifierFor, BundleCompiler, Specifier } from '@glimmer/bundle-compiler';
 import Scope from '../scope';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
+import { BundleCompilerDelegate } from '../bundle';
+import { TemplateCompiler } from '@glimmer/compiler';
+import { AST } from '@glimmer/syntax';
 
 const CAPABILITIES = {
   dynamicLayout: false,
@@ -22,7 +25,7 @@ interface BasicMetadata {
   scope: Scope;
 }
 
-export default class BasicCompilerDelegate implements CompilerDelegate {
+export default class BasicCompilerDelegate implements BundleCompilerDelegate {
   bundleCompiler: BundleCompiler;
 
   protected scopes = new Map<Specifier, Scope>();
@@ -32,6 +35,16 @@ export default class BasicCompilerDelegate implements CompilerDelegate {
     this.bundleCompiler.add(specifier, templateSource);
 
     this.scopes.set(specifier, meta.scope);
+  }
+
+  addAST(modulePath: string, ast: AST.Program) {
+    let specifier = specifierFor(modulePath, 'default');
+
+    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+    let block = template.toJSON();
+
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
+    this.bundleCompiler.addCustom(specifier, compilable);
   }
 
   hasComponentInScope(componentName: string, referrer: Specifier): boolean {

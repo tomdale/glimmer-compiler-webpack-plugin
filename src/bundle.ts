@@ -17,7 +17,7 @@ export interface Specifiers {
 export interface BundleCompilerDelegate extends CompilerDelegate {
   bundleCompiler: BundleCompiler;
   add(modulePath: string, templateSource: string, meta: Metadata): void;
-  addAST(modulePath: string, ast: SerializedTemplateBlock): void;
+  addAST(modulePath: string, ast: AST.Program): void;
   generateDataSegment(map: SpecifierMap, pool: ConstantPool, heapTable: number[]): string;
 }
 
