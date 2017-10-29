@@ -47,7 +47,7 @@ describe('component loader', () => {
         // Each segment represents how many items where compiled into the buffer
         expect(bundle.heapTable.length / 4).to.equal(5);
 
-        expect(bundle.moduleTable.length).to.equal(2);
+        expect(bundle.moduleTable.length).to.equal(3);
         expect(bundle.pool.strings.sort()).to.deep.equal([
           'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n',
           '\n  Yo yo '
@@ -66,26 +66,17 @@ describe('component loader', () => {
         expect(bundle.symbolTables).to.deep.equal({
           'template:/such-webpack/components/DropDown': {
             hasEval: false,
-            referrer: {
-              module: 'src/ui/components/DropDown/template.hbs',
-              name: 'default'
-            },
+            referrer: null,
             symbols: []
           },
           'template:/such-webpack/components/OtherComponent': {
             hasEval: false,
-            referrer: {
-              module: 'src/ui/components/OtherComponent/template.hbs',
-              name: 'default'
-            },
+            referrer: null,
             symbols: []
           },
           'template:/such-webpack/components/UserNav': {
             hasEval: false,
-            referrer: {
-              module: 'src/ui/components/UserNav/template.hbs',
-              name: 'default'
-            },
+            referrer: null,
             symbols: []
           }
         });
