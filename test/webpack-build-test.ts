@@ -45,7 +45,7 @@ describe('component loader', () => {
 
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segment represents how many items where compiled into the buffer
-        expect(bundle.heapTable.length / 4).to.equal(5);
+        expect(bundle.heapTable.length / 2).to.equal(3);
 
         expect(bundle.moduleTable.length).to.equal(3);
         expect(bundle.pool.strings.sort()).to.deep.equal([
@@ -60,7 +60,7 @@ describe('component loader', () => {
         ]);
 
         expect(sortedValues(bundle.specifierMap)).to.deep.equal([
-          4, 12, 16
+          0, 2, 4
         ]);
 
         expect(bundle.symbolTables).to.deep.equal({
@@ -75,9 +75,7 @@ describe('component loader', () => {
             symbols: []
           },
           'template:/such-webpack/components/UserNav': {
-            hasEval: false,
-            referrer: null,
-            symbols: []
+            referrer: null
           }
         });
 
