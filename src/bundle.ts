@@ -3,8 +3,11 @@ import { BundleCompiler, Specifier, specifierFor } from '@glimmer/bundle-compile
 import { expect } from '@glimmer/util';
 import { ConstantPool } from '@glimmer/program';
 import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
+import { AST } from '@glimmer/syntax';
 
 import ComponentRegistry from './component-registry';
+import { TemplateCompiler } from '@glimmer/compiler';
+import { CompilableTemplate } from '@glimmer/opcode-compiler';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -53,6 +56,17 @@ export default class Bundle {
   add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
     let specifier = this.normalizeSpecifier(absoluteModulePath);
     this.bundleCompiler.add(specifier, templateSource);
+  }
+
+  addAST(modulePath: string, ast: AST.Program) {
+    let normalizedPath = this.delegate.normalizePath(modulePath);
+    let specifier = this.delegate.specifierFor(normalizedPath);
+
+    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+    let block = template.toJSON();
+
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
+    this.bundleCompiler.addCustom(specifier, compilable);
   }
 
   protected normalizeSpecifier(absoluteModulePath: string) {
