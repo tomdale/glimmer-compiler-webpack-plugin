@@ -47,7 +47,7 @@ describe('component loader', () => {
         // Each segment represents how many items where compiled into the buffer
         expect(bundle.heapTable.length / 2).to.equal(3);
 
-        expect(bundle.moduleTable.length).to.equal(3);
+        expect(bundle.moduleTable.length).to.equal(2);
         expect(bundle.pool.strings.sort()).to.deep.equal([
           'div', 'OtherComponent ', 'h1', 'UserNav ', 'wat', '\n',
           '\n  Yo yo '

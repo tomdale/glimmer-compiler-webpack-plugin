@@ -15,12 +15,12 @@
     "@glimmer/wire-format" "^0.29.10"
     simple-html-tokenizer "^0.4.1"
 
-"@glimmer/compiler-delegates@^0.9.0-alpha.2":
-  version "0.9.0-alpha.2"
-  resolved "https://registry.yarnpkg.com/@glimmer/compiler-delegates/-/compiler-delegates-0.9.0-alpha.2.tgz#96f8d4f3a9b4be5fdd04eb265c271fe17229b505"
+"@glimmer/compiler-delegates@^0.9.0-alpha.4":
+  version "0.9.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@glimmer/compiler-delegates/-/compiler-delegates-0.9.0-alpha.4.tgz#d10d90b67fe484b26da3d04e1d0d54ae295c9f02"
   dependencies:
     "@glimmer/bundle-compiler" "^0.29.10"
-    "@glimmer/component" "^0.9.0-alpha.2"
+    "@glimmer/component" "^0.9.0-alpha.4"
     "@glimmer/interfaces" "^0.29.10"
     "@glimmer/opcode-compiler" "^0.29.10"
     "@glimmer/program" "^0.29.10"
@@ -41,9 +41,9 @@
     "@glimmer/wire-format" "^0.29.10"
     simple-html-tokenizer "^0.4.1"
 
-"@glimmer/component@^0.9.0-alpha.2":
-  version "0.9.0-alpha.2"
-  resolved "https://registry.yarnpkg.com/@glimmer/component/-/component-0.9.0-alpha.2.tgz#a62b58ee2295fdafbd2dbb32303b0ff2e5ca3704"
+"@glimmer/component@^0.9.0-alpha.4":
+  version "0.9.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@glimmer/component/-/component-0.9.0-alpha.4.tgz#a6f5819904c022fd929eafaecb52bbbcd1d3e52f"
   dependencies:
     "@glimmer/di" "^0.1.9"
     "@glimmer/env" "^0.1.7"
