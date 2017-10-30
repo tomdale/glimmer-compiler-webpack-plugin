@@ -4,12 +4,11 @@ import { Source } from 'webpack-sources';
 
 import Debug = require('debug');
 import { expect } from '@glimmer/util';
+import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate } from '@glimmer/compiler-delegates';
 
-import Bundle, { Specifiers, BundleCompilerDelegate } from './bundle';
-import Scope from './scope';
+import Bundle, { Specifiers } from './bundle';
 import BasicCompilerDelegate from './compiler-delegates/basic';
-import ModuleUnificationCompilerDelegate from './compiler-delegates/module-unification';
-import { AST } from '@glimmer/syntax';
+import Scope from './scope';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -94,10 +93,6 @@ class GlimmerCompiler {
     this.bundle.add(path, template, scope);
   }
 
-  addAST(path: string, ast: AST.Program) {
-    this.bundle.addAST(path, ast);
-  }
-
   apply(compiler: Compiler) {
     debug('applying plugin');
     let inputPath = expect(this.options.context || compiler.options.context, 'expected compiler to have a context');
@@ -176,7 +171,10 @@ class GlimmerCompiler {
       }
     }
 
-    return new CompilerDelegate(inputPath);
+    return new CompilerDelegate(inputPath, {
+      dataSegment: 'table.js',
+      heapFile: 'templates.gbx'
+    });
   }
 }
 

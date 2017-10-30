@@ -7,7 +7,7 @@ import { expect } from '@glimmer/util';
 import { specifierFor, BundleCompiler, Specifier } from '@glimmer/bundle-compiler';
 import Scope from '../scope';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
-import { BundleCompilerDelegate } from '../bundle';
+import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
 import { TemplateCompiler } from '@glimmer/compiler';
 import { AST } from '@glimmer/syntax';
 
@@ -21,20 +21,17 @@ const CAPABILITIES = {
   attributeHook: true
 };
 
-interface BasicMetadata {
-  scope: Scope;
-}
-
 export default class BasicCompilerDelegate implements BundleCompilerDelegate {
   bundleCompiler: BundleCompiler;
 
   protected scopes = new Map<Specifier, Scope>();
 
-  add(modulePath: string, templateSource: string, meta: BasicMetadata) {
-    let specifier = specifierFor(modulePath, 'default');
-    this.bundleCompiler.add(specifier, templateSource);
+  normalizePath(absoluteModulePath: string) {
+    return absoluteModulePath;
+  }
 
-    this.scopes.set(specifier, meta.scope);
+  specifierFor(modulePath: string) {
+    return specifierFor(modulePath, 'default');
   }
 
   addAST(modulePath: string, ast: AST.Program) {

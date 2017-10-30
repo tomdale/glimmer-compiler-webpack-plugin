@@ -1,10 +1,13 @@
 import { ConcatSource, RawSource } from 'webpack-sources';
-import { BundleCompiler, CompilerDelegate, Specifier, specifierFor, SpecifierMap } from '@glimmer/bundle-compiler';
+import { BundleCompiler, Specifier, specifierFor } from '@glimmer/bundle-compiler';
 import { expect } from '@glimmer/util';
+import { ConstantPool } from '@glimmer/program';
+import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
+import { AST } from '@glimmer/syntax';
 
 import ComponentRegistry from './component-registry';
-import { ConstantPool } from '@glimmer/program';
-import { AST } from '@glimmer/syntax';
+import { TemplateCompiler } from '@glimmer/compiler';
+import { CompilableTemplate } from '@glimmer/opcode-compiler';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -12,13 +15,6 @@ export interface Resolver {
 
 export interface Specifiers {
   [key: string]: Specifier;
-}
-
-export interface BundleCompilerDelegate extends CompilerDelegate {
-  bundleCompiler: BundleCompiler;
-  add(modulePath: string, templateSource: string, meta: Metadata): void;
-  addAST(modulePath: string, ast: AST.Program): void;
-  generateDataSegment(map: SpecifierMap, pool: ConstantPool, heapTable: number[]): string;
 }
 
 interface BundleOptions {
@@ -54,15 +50,28 @@ export default class Bundle {
     this.helpers = helpers || {};
     this.delegate = delegate;
 
-    this.bundleCompiler = delegate.bundleCompiler = new BundleCompiler(delegate);
+    this.bundleCompiler =  new BundleCompiler(delegate);
   }
 
-  add(modulePath: string, templateSource: string, meta: Metadata) {
-    this.delegate.add(modulePath, templateSource, meta);
+  add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
+    let specifier = this.normalizeSpecifier(absoluteModulePath);
+    this.bundleCompiler.add(specifier, templateSource);
   }
 
   addAST(modulePath: string, ast: AST.Program) {
-    this.delegate.addAST(modulePath, ast);
+    let normalizedPath = this.delegate.normalizePath(modulePath);
+    let specifier = this.delegate.specifierFor(normalizedPath);
+
+    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+    let block = template.toJSON();
+
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
+    this.bundleCompiler.addCustom(specifier, compilable);
+  }
+
+  protected normalizeSpecifier(absoluteModulePath: string) {
+    let normalizedPath = this.delegate.normalizePath(absoluteModulePath);
+    return specifierFor(normalizedPath, 'default');
   }
 
   compile() {
@@ -79,7 +88,7 @@ export default class Bundle {
       entryHandle
     };
 
-    let data = this.delegate.generateDataSegment(map, pool, heap.table);
+    let data = this.delegate.generateDataSegment(map, pool, heap.table, heap.handle, bundleCompiler.compiledBlocks);
 
     return {
       bytecode: new RawSource(heap.buffer as any),
