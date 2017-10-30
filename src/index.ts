@@ -1,4 +1,3 @@
-// import { BundleCompiler } from '@glimmer/bundle-compiler';
 import { Compiler } from 'webpack';
 import { Source } from 'webpack-sources';
 
@@ -9,6 +8,7 @@ import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate } from '@glim
 import Bundle, { Specifiers } from './bundle';
 import BasicCompilerDelegate from './compiler-delegates/basic';
 import Scope from './scope';
+import { AST } from '@glimmer/syntax';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -91,6 +91,10 @@ class GlimmerCompiler {
    */
   addComponent(path: string, template: string, scope: Scope) {
     this.bundle.add(path, template, scope);
+  }
+
+  addAST(path: string, ast: AST.Program) {
+    this.bundle.addAST(path, ast);
   }
 
   apply(compiler: Compiler) {
