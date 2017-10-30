@@ -3,7 +3,7 @@ import { Source } from 'webpack-sources';
 
 import Debug = require('debug');
 import { expect } from '@glimmer/util';
-import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate } from '@glimmer/compiler-delegates';
+import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
 import Bundle, { Specifiers } from './bundle';
 import BasicCompilerDelegate from './compiler-delegates/basic';
@@ -26,6 +26,7 @@ interface PluginOptions {
   mode?: Mode;
   helpers?: Specifiers;
   CompilerDelegate?: Constructor<BundleCompilerDelegate>;
+  builtins?: Builtins;
 }
 
 interface Module {
@@ -178,7 +179,7 @@ class GlimmerCompiler {
     return new CompilerDelegate(inputPath, {
       dataSegment: 'table.js',
       heapFile: 'templates.gbx'
-    });
+    }, this.options.builtins);
   }
 }
 
