@@ -79,17 +79,29 @@ export default class Bundle {
     let { bundleCompiler } = this;
     let { heap, pool } = bundleCompiler.compile();
     let map = bundleCompiler.getSpecifierMap();
-    let entry = specifierFor('./src/glimmer/components/Entry.ts', 'default');
-    let entryHandle = expect(map.vmHandleBySpecifier.get(entry) || -1, 'Should have entry handle');
+    let entryHandle;
+
+    for (let [specifier, handle] of map.vmHandleBySpecifier) {
+      if (specifier.module === 'src/ui/components/Main/template.hbs') {
+        entryHandle = handle;
+      }
+    }
+
+    // let entry = specifierFor('src/ui/components/Main/template.hbs', 'default');
+    entryHandle = expect(entryHandle, 'Should have entry handle');
 
     let dataSegment = {
-      handle: heap.handle,
-      table: heap.table,
+      map,
       pool,
-      entryHandle
+      entryHandle,
+      heap: {
+        table: heap.table,
+        handle: heap.handle
+      },
+      compiledBlocks: bundleCompiler.compiledBlocks
     };
 
-    let data = this.delegate.generateDataSegment(map, pool, heap.table, heap.handle, bundleCompiler.compiledBlocks);
+    let data = this.delegate.generateDataSegment(dataSegment);
 
     return {
       bytecode: new BinarySource(heap.buffer),

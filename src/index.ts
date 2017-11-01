@@ -47,6 +47,11 @@ class GlimmerCompiler {
   static ast() { return loader('./loaders/ast'); }
   static data() { return loader('./loaders/data'); }
 
+  component() { return instanceLoader('./loaders/component', this); }
+  template() { return instanceLoader('./loaders/template', this); }
+  ast() { return instanceLoader('./loaders/ast', this); }
+  data() { return instanceLoader('./loaders/data', this); }
+
   bundle: Bundle;
   options: PluginOptions;
 
@@ -60,6 +65,7 @@ class GlimmerCompiler {
    * these are populated by the generated Glimmer data segment.
    */
   protected dataSegmentModules: Module[] = [];
+  protected loaderOptions: any[];
 
   constructor(options: PluginOptions) {
     this.options = options;
@@ -74,6 +80,8 @@ class GlimmerCompiler {
     for (let opts of loaderOptions) {
       opts.compiler = this;
     }
+
+    this.loaderOptions = loaderOptions;
 
     loaderOptions = [];
   }
@@ -140,7 +148,9 @@ class GlimmerCompiler {
         });
 
         compilation.plugin('need-additional-seal', () => {
-          if (resealed) { return false; }
+          if (resealed) {
+            return false;
+          }
 
           debug('requesting additional seal');
           resetCompilation(compilation);
@@ -227,6 +237,18 @@ function loader(loaderPath: string) {
 
   let options = {};
   loaderOptions.push(options);
+
+  return {
+    loader: require.resolve(loaderPath),
+    options
+  }
+}
+
+function instanceLoader(loaderPath: string, compiler: any) {
+  debug('generating instance loader', loaderPath);
+
+  let options = { compiler };
+  compiler.loaderOptions.push(options);
 
   return {
     loader: require.resolve(loaderPath),
