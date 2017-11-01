@@ -8,6 +8,7 @@ import { AST } from '@glimmer/syntax';
 import ComponentRegistry from './component-registry';
 import { TemplateCompiler } from '@glimmer/compiler';
 import { CompilableTemplate } from '@glimmer/opcode-compiler';
+import BinarySource from './binary-source';
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -91,7 +92,7 @@ export default class Bundle {
     let data = this.delegate.generateDataSegment(map, pool, heap.table, heap.handle, bundleCompiler.compiledBlocks);
 
     return {
-      bytecode: new RawSource(heap.buffer as any),
+      bytecode: new BinarySource(heap.buffer),
       constants: new ConcatSource(JSON.stringify(dataSegment)),
       data: new RawSource(data)
     }
