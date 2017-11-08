@@ -13,13 +13,13 @@ export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
 }
 
-export interface Specifiers {
-  [key: string]: TemplateLocator;
+export interface Specifiers<TemplateMeta> {
+  [key: string]: TemplateLocator<TemplateMeta>;
 }
 
-interface BundleOptions {
-  helpers?: Specifiers;
-  delegate: AppCompilerDelegate<{}>;
+interface BundleOptions<TemplateMeta> {
+  helpers?: Specifiers<TemplateMeta>;
+  delegate: AppCompilerDelegate<TemplateMeta>;
   inputPath: string;
 }
 
@@ -38,13 +38,13 @@ type Metadata = {};
  * components with `add()`. Once all components have been added to the bundle,
  * compile and produce a binary output by calling `compile()`.
  */
-export default class Bundle {
-  protected bundleCompiler: BundleCompiler;
-  protected delegate: AppCompilerDelegate<{}>;
+export default class Bundle<TemplateMeta> {
+  protected bundleCompiler: BundleCompiler<TemplateMeta>;
+  protected delegate: AppCompilerDelegate<TemplateMeta>;
   protected registry = new ComponentRegistry();
-  protected helpers: Specifiers;
+  protected helpers: Specifiers<TemplateMeta>;
 
-  constructor(protected options: BundleOptions) {
+  constructor(protected options: BundleOptions<TemplateMeta>) {
     let { delegate, helpers } = options;
 
     this.helpers = helpers || {};

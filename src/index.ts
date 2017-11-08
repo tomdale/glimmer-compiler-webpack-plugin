@@ -6,7 +6,6 @@ import { expect } from '@glimmer/util';
 import { AppCompilerDelegate, MUCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
 import Bundle, { Specifiers } from './bundle';
-import BasicCompilerDelegate from './compiler-delegates/basic';
 import Scope from './scope';
 import { AST } from '@glimmer/syntax';
 
@@ -20,11 +19,11 @@ interface Constructor<T> {
 
 type Mode = 'basic' | 'module-unification';
 
-interface PluginOptions {
+interface PluginOptions<TemplateMeta> {
   output: string;
   context?: string;
   mode?: Mode;
-  helpers?: Specifiers;
+  helpers?: Specifiers<TemplateMeta>;
   CompilerDelegate?: Constructor<AppCompilerDelegate<{}>>;
   builtins?: Builtins;
 }
@@ -52,8 +51,8 @@ class GlimmerCompiler {
   ast() { return instanceLoader('./loaders/ast', this); }
   data() { return instanceLoader('./loaders/data', this); }
 
-  bundle: Bundle;
-  options: PluginOptions;
+  bundle: Bundle<{}>;
+  options: PluginOptions<{}>;
 
   protected outputFile: string;
 
@@ -67,7 +66,7 @@ class GlimmerCompiler {
   protected dataSegmentModules: Module[] = [];
   protected loaderOptions: any[];
 
-  constructor(options: PluginOptions) {
+  constructor(options: PluginOptions<{}>) {
     this.options = options;
     this.outputFile = this.options.output;
 
@@ -174,9 +173,6 @@ class GlimmerCompiler {
 
     if (!CompilerDelegate) {
       switch (mode) {
-        case 'basic':
-          CompilerDelegate = BasicCompilerDelegate as any;
-          break;
         case 'module-unification':
           CompilerDelegate = MUCompilerDelegate;
           break;

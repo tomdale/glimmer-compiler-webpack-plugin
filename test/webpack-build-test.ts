@@ -2,34 +2,9 @@ import { expect } from "chai";
 
 import webpack = require("webpack");
 import { dirSync as tmpdir } from "tmp";
-import { readFileSync } from "fs";
 import * as path from "path";
 
 describe("component loader", () => {
-  it("produces a compiled template file from component files", function(done) {
-    this.timeout(5000);
-    let config = require("./fixtures/basic/webpack.config.js");
-    config.output.path = tmpdir().name;
-
-    webpack(config).run((err, stats) => {
-      if (err) {
-        done(err);
-      } else if (stats.hasErrors()) {
-        done(new Error(stats.toString()));
-      } else {
-        let binaryOutput = readFileSync(
-          path.join(config.output.path, "templates.gbx")
-        );
-        let compiledTemplates = new Uint16Array(binaryOutput);
-
-        expect(Array.from(compiledTemplates)).to.deep.equal([
-          57, 1, 4, 0, 73, 0, 37, 0, 65, 2, 0, 0, 4, 0, 66, 1, 4, 0, 68, 1, 4, 0, 72, 1, 4, 0, 76, 1, 4, 0, 49, 0, 19, 0, 38, 0, 74, 0, 20, 0, 25, 1, 0, 0, 31, 0, 22, 1, 1, 0, 32, 0, 22, 1, 2, 0, 20, 0, 25, 1, 3, 0, 31, 0, 22, 1, 4, 0, 32, 0, 22, 1, 2, 0, 20, 0
-        ]);
-        done();
-      }
-    });
-  });
-
   it("module unification", function(done) {
     this.timeout(5000);
     let config = require("./fixtures/module-unification/webpack.config.js");
