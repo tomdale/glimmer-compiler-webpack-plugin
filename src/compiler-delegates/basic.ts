@@ -4,12 +4,10 @@ import { sync as resolveSync } from 'resolve';
 import { ICompilableTemplate, CompilableTemplate, CompileOptions } from '@glimmer/opcode-compiler';
 import { ComponentCapabilities, ProgramSymbolTable } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
-import { specifierFor, BundleCompiler, Specifier } from '@glimmer/bundle-compiler';
+import { BundleCompiler, TemplateLocator, ModuleLocator } from '@glimmer/bundle-compiler';
 import Scope from '../scope';
 import { SerializedTemplateBlock } from '@glimmer/wire-format';
-import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
-import { TemplateCompiler } from '@glimmer/compiler';
-import { AST } from '@glimmer/syntax';
+import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
 
 const CAPABILITIES = {
   dynamicLayout: false,
@@ -21,37 +19,35 @@ const CAPABILITIES = {
   attributeHook: true
 };
 
-export default class BasicCompilerDelegate implements BundleCompilerDelegate {
-  bundleCompiler: BundleCompiler;
+export interface BasicMeta {
+  scope: Scope;
+}
 
-  protected scopes = new Map<Specifier, Scope>();
+export default class BasicCompilerDelegate implements AppCompilerDelegate<BasicMeta> {
+  bundleCompiler: BundleCompiler;
 
   normalizePath(absoluteModulePath: string) {
     return absoluteModulePath;
   }
 
-  specifierFor(modulePath: string) {
-    return specifierFor(modulePath, 'default');
+  templateLocatorFor({ module, name }: ModuleLocator) {
+    return {
+      module,
+      name,
+      meta: {
+        scope: {}
+      }
+    }
   }
 
-  addAST(modulePath: string, ast: AST.Program) {
-    let specifier = specifierFor(modulePath, 'default');
-
-    let template = TemplateCompiler.compile({ meta: specifier }, ast)
-    let block = template.toJSON();
-
-    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
-    this.bundleCompiler.addCustom(specifier, compilable);
-  }
-
-  hasComponentInScope(componentName: string, referrer: Specifier): boolean {
-    let scope = expect(this.scopes.get(referrer), `could not find scope for ${referrer}`);
+  hasComponentInScope(componentName: string, referrer: TemplateLocator<BasicMeta>): boolean {
+    let scope = expect(referrer.meta!.scope, `could not find scope for ${referrer}`);
 
     return componentName in scope;
   }
 
-  resolveComponentSpecifier(componentName: string, referrer: Specifier): Specifier {
-    let scope = expect(this.scopes.get(referrer), `could not find scope for ${referrer}`);
+  resolveComponent(componentName: string, referrer: TemplateLocator<BasicMeta>): ModuleLocator {
+    let scope = expect(referrer.meta!.scope, `could not find scope for ${referrer}`);
 
     let { module, name } = scope[componentName];
 
@@ -59,18 +55,18 @@ export default class BasicCompilerDelegate implements BundleCompilerDelegate {
     let resolved = resolveSync(module, { basedir, extensions: ['.ts', '.js'] });
     resolved = './' + path.relative(process.cwd(), resolved);
 
-    return specifierFor(resolved, name);
+    return { module: resolved, name };
   }
 
-  getComponentCapabilities(_specifier: Specifier): ComponentCapabilities {
+  getComponentCapabilities(_locator: TemplateLocator<BasicMeta>): ComponentCapabilities {
     return CAPABILITIES;
   }
 
-  getComponentLayout(_specifier: Specifier, block: SerializedTemplateBlock, options: CompileOptions<Specifier>): ICompilableTemplate<ProgramSymbolTable> {
+  getComponentLayout(_locator: TemplateLocator<BasicMeta>, block: SerializedTemplateBlock, options: CompileOptions<TemplateLocator<BasicMeta>>): ICompilableTemplate<ProgramSymbolTable> {
     return CompilableTemplate.topLevel(block, options);
   }
 
-  hasHelperInScope(_helperName: string, _referer: Specifier): boolean {
+  hasHelperInScope(_helperName: string, _referrer: TemplateLocator<BasicMeta>): boolean {
     return false;
   }
 
@@ -78,23 +74,23 @@ export default class BasicCompilerDelegate implements BundleCompilerDelegate {
     return '';
   }
 
-  resolveHelperSpecifier(_helperName: string, _referer: Specifier): Specifier {
+  resolveHelper(_helperName: string, _referrer: TemplateLocator<BasicMeta>): ModuleLocator {
     throw new Error("Method not implemented.");
   }
 
-  hasModifierInScope(_modifierName: string, _referer: Specifier): boolean {
+  hasModifierInScope(_modifierName: string, _referrer: TemplateLocator<BasicMeta>): boolean {
     throw new Error("Method not implemented.");
   }
 
-  resolveModifierSpecifier(_modifierName: string, _referer: Specifier): Specifier {
+  resolveModifier(_modifierName: string, _referrer: TemplateLocator<BasicMeta>): ModuleLocator {
     throw new Error("Method not implemented.");
   }
 
-  hasPartialInScope(_partialName: string, _referer: Specifier): boolean {
+  hasPartialInScope(_partialName: string, _referrer: TemplateLocator<BasicMeta>): boolean {
     throw new Error("Method not implemented.");
   }
 
-  resolvePartialSpecifier(_partialName: string, _referer: Specifier): Specifier {
+  resolvePartial(_partialName: string, _referer: TemplateLocator<BasicMeta>): ModuleLocator {
     throw new Error("Method not implemented.");
   }
 }

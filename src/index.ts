@@ -3,7 +3,7 @@ import { Source } from 'webpack-sources';
 
 import Debug = require('debug');
 import { expect } from '@glimmer/util';
-import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
+import { AppCompilerDelegate, MUCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
 import Bundle, { Specifiers } from './bundle';
 import BasicCompilerDelegate from './compiler-delegates/basic';
@@ -25,7 +25,7 @@ interface PluginOptions {
   context?: string;
   mode?: Mode;
   helpers?: Specifiers;
-  CompilerDelegate?: Constructor<BundleCompilerDelegate>;
+  CompilerDelegate?: Constructor<AppCompilerDelegate<{}>>;
   builtins?: Builtins;
 }
 
@@ -57,7 +57,7 @@ class GlimmerCompiler {
 
   protected outputFile: string;
 
-  protected CompilerDelegate: Constructor<BundleCompilerDelegate> | null;
+  protected CompilerDelegate: Constructor<AppCompilerDelegate<{}>> | null;
   protected mode: Mode | null;
 
   /**
@@ -133,7 +133,7 @@ class GlimmerCompiler {
           return cb();
         }
 
-        let { bytecode, constants, data } = this.bundle.compile();
+        let { bytecode, data } = this.bundle.compile();
 
         rewriteDataSegmentModules(dataSegmentModules, compilation, data)
           .then(cb, cb);
@@ -143,7 +143,6 @@ class GlimmerCompiler {
           let { output } = this.options;
 
           compilation.assets[output] = bytecode;
-          compilation.assets[`${output}.json`] = constants;
           cb();
         });
 
@@ -176,20 +175,24 @@ class GlimmerCompiler {
     if (!CompilerDelegate) {
       switch (mode) {
         case 'basic':
-          CompilerDelegate = BasicCompilerDelegate;
+          CompilerDelegate = BasicCompilerDelegate as any;
           break;
         case 'module-unification':
-          CompilerDelegate = ModuleUnificationCompilerDelegate;
+          CompilerDelegate = MUCompilerDelegate;
           break;
         default:
           throw new Error(`Unrecognized compiler mode ${mode}`);
       }
     }
 
-    return new CompilerDelegate(inputPath, {
-      dataSegment: 'table.js',
-      heapFile: 'templates.gbx'
-    }, this.options.builtins);
+    return new CompilerDelegate!({
+      projectPath: inputPath,
+      outputFiles: {
+        dataSegment: 'table.js',
+        heapFile: 'templates.gbx'
+      },
+      builtins: this.options.builtins
+    });
   }
 }
 

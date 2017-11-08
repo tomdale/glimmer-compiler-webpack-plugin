@@ -1,5 +1,3 @@
-// export default function id([item]) {
-//   return item;
-// }
-
-export default { foo: "bar" };
+export default function id([item]) {
+  return item;
+}

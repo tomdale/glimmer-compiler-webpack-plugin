@@ -1,8 +1,7 @@
-import { ConcatSource, RawSource } from 'webpack-sources';
-import { BundleCompiler, Specifier, specifierFor } from '@glimmer/bundle-compiler';
-import { expect } from '@glimmer/util';
+import { RawSource } from 'webpack-sources';
+import { BundleCompiler, TemplateLocator } from '@glimmer/bundle-compiler';
 import { ConstantPool } from '@glimmer/program';
-import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
+import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
 import { AST } from '@glimmer/syntax';
 
 import ComponentRegistry from './component-registry';
@@ -15,12 +14,12 @@ export interface Resolver {
 }
 
 export interface Specifiers {
-  [key: string]: Specifier;
+  [key: string]: TemplateLocator;
 }
 
 interface BundleOptions {
   helpers?: Specifiers;
-  delegate: BundleCompilerDelegate;
+  delegate: AppCompilerDelegate<{}>;
   inputPath: string;
 }
 
@@ -41,7 +40,7 @@ type Metadata = {};
  */
 export default class Bundle {
   protected bundleCompiler: BundleCompiler;
-  protected delegate: BundleCompilerDelegate;
+  protected delegate: AppCompilerDelegate<{}>;
   protected registry = new ComponentRegistry();
   protected helpers: Specifiers;
 
@@ -51,61 +50,35 @@ export default class Bundle {
     this.helpers = helpers || {};
     this.delegate = delegate;
 
-    this.bundleCompiler =  new BundleCompiler(delegate);
+    this.bundleCompiler = (delegate as any)['compiler'] = new BundleCompiler(delegate);
   }
 
   add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
-    let specifier = this.normalizeSpecifier(absoluteModulePath);
-    this.bundleCompiler.add(specifier, templateSource);
+    let locator = this.templateLocatorFor(absoluteModulePath);
+    this.bundleCompiler.add(locator, templateSource);
   }
 
-  addAST(modulePath: string, ast: AST.Program) {
-    let normalizedPath = this.delegate.normalizePath(modulePath);
-    let specifier = this.delegate.specifierFor(normalizedPath);
-
-    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+  addAST(absoluteModulePath: string, ast: AST.Program) {
+    let locator = this.templateLocatorFor(absoluteModulePath);
+    let template = TemplateCompiler.compile({ meta: locator }, ast)
     let block = template.toJSON();
 
-    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
-    this.bundleCompiler.addCustom(specifier, compilable);
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(locator));
+    this.bundleCompiler.addCompilableTemplate(locator, compilable);
   }
 
-  protected normalizeSpecifier(absoluteModulePath: string) {
+  protected templateLocatorFor(absoluteModulePath: string) {
     let normalizedPath = this.delegate.normalizePath(absoluteModulePath);
-    return specifierFor(normalizedPath, 'default');
+    return this.delegate.templateLocatorFor({ module: normalizedPath, name: 'default' });
   }
 
   compile() {
     let { bundleCompiler } = this;
-    let { heap, pool } = bundleCompiler.compile();
-    let map = bundleCompiler.getSpecifierMap();
-    let entryHandle;
-
-    for (let [specifier, handle] of map.vmHandleBySpecifier) {
-      if (specifier.module === 'src/ui/components/Main/template.hbs') {
-        entryHandle = handle;
-      }
-    }
-
-    // let entry = specifierFor('src/ui/components/Main/template.hbs', 'default');
-    entryHandle = expect(entryHandle, 'Should have entry handle');
-
-    let dataSegment = {
-      map,
-      pool,
-      entryHandle,
-      heap: {
-        table: heap.table,
-        handle: heap.handle
-      },
-      compiledBlocks: bundleCompiler.compiledBlocks
-    };
-
-    let data = this.delegate.generateDataSegment(dataSegment);
+    let compilation = bundleCompiler.compile();
+    let data = this.delegate.generateDataSegment(compilation);
 
     return {
-      bytecode: new BinarySource(heap.buffer),
-      constants: new ConcatSource(JSON.stringify(dataSegment)),
+      bytecode: new BinarySource(compilation.heap.buffer),
       data: new RawSource(data)
     }
   }
