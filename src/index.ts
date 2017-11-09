@@ -3,10 +3,9 @@ import { Source } from 'webpack-sources';
 
 import Debug = require('debug');
 import { expect } from '@glimmer/util';
-import { BundleCompilerDelegate, ModuleUnificationCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
+import { AppCompilerDelegate, MUCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
 import Bundle, { Specifiers } from './bundle';
-import BasicCompilerDelegate from './compiler-delegates/basic';
 import Scope from './scope';
 import { AST } from '@glimmer/syntax';
 
@@ -20,12 +19,12 @@ interface Constructor<T> {
 
 type Mode = 'basic' | 'module-unification';
 
-interface PluginOptions {
+interface PluginOptions<TemplateMeta> {
   output: string;
   context?: string;
   mode?: Mode;
-  helpers?: Specifiers;
-  CompilerDelegate?: Constructor<BundleCompilerDelegate>;
+  helpers?: Specifiers<TemplateMeta>;
+  CompilerDelegate?: Constructor<AppCompilerDelegate<{}>>;
   builtins?: Builtins;
 }
 
@@ -47,12 +46,17 @@ class GlimmerCompiler {
   static ast() { return loader('./loaders/ast'); }
   static data() { return loader('./loaders/data'); }
 
-  bundle: Bundle;
-  options: PluginOptions;
+  component() { return instanceLoader('./loaders/component', this); }
+  template() { return instanceLoader('./loaders/template', this); }
+  ast() { return instanceLoader('./loaders/ast', this); }
+  data() { return instanceLoader('./loaders/data', this); }
+
+  bundle: Bundle<{}>;
+  options: PluginOptions<{}>;
 
   protected outputFile: string;
 
-  protected CompilerDelegate: Constructor<BundleCompilerDelegate> | null;
+  protected CompilerDelegate: Constructor<AppCompilerDelegate<{}>> | null;
   protected mode: Mode | null;
 
   /**
@@ -60,8 +64,9 @@ class GlimmerCompiler {
    * these are populated by the generated Glimmer data segment.
    */
   protected dataSegmentModules: Module[] = [];
+  protected loaderOptions: any[];
 
-  constructor(options: PluginOptions) {
+  constructor(options: PluginOptions<{}>) {
     this.options = options;
     this.outputFile = this.options.output;
 
@@ -74,6 +79,8 @@ class GlimmerCompiler {
     for (let opts of loaderOptions) {
       opts.compiler = this;
     }
+
+    this.loaderOptions = loaderOptions;
 
     loaderOptions = [];
   }
@@ -125,7 +132,7 @@ class GlimmerCompiler {
           return cb();
         }
 
-        let { bytecode, constants, data } = this.bundle.compile();
+        let { bytecode, data } = this.bundle.compile();
 
         rewriteDataSegmentModules(dataSegmentModules, compilation, data)
           .then(cb, cb);
@@ -135,12 +142,13 @@ class GlimmerCompiler {
           let { output } = this.options;
 
           compilation.assets[output] = bytecode;
-          compilation.assets[`${output}.json`] = constants;
           cb();
         });
 
         compilation.plugin('need-additional-seal', () => {
-          if (resealed) { return false; }
+          if (resealed) {
+            return false;
+          }
 
           debug('requesting additional seal');
           resetCompilation(compilation);
@@ -165,21 +173,22 @@ class GlimmerCompiler {
 
     if (!CompilerDelegate) {
       switch (mode) {
-        case 'basic':
-          CompilerDelegate = BasicCompilerDelegate;
-          break;
         case 'module-unification':
-          CompilerDelegate = ModuleUnificationCompilerDelegate;
+          CompilerDelegate = MUCompilerDelegate;
           break;
         default:
           throw new Error(`Unrecognized compiler mode ${mode}`);
       }
     }
 
-    return new CompilerDelegate(inputPath, {
-      dataSegment: 'table.js',
-      heapFile: 'templates.gbx'
-    }, this.options.builtins);
+    return new CompilerDelegate!({
+      projectPath: inputPath,
+      outputFiles: {
+        dataSegment: 'table.js',
+        heapFile: 'templates.gbx'
+      },
+      builtins: this.options.builtins
+    });
   }
 }
 
@@ -227,6 +236,18 @@ function loader(loaderPath: string) {
 
   let options = {};
   loaderOptions.push(options);
+
+  return {
+    loader: require.resolve(loaderPath),
+    options
+  }
+}
+
+function instanceLoader(loaderPath: string, compiler: any) {
+  debug('generating instance loader', loaderPath);
+
+  let options = { compiler };
+  compiler.loaderOptions.push(options);
 
   return {
     loader: require.resolve(loaderPath),

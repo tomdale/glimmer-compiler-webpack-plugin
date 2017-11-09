@@ -1,5 +1,5 @@
 import webpack = require('webpack');
-import { relative } from 'path';
+// import { relative } from 'path';
 
 export = function(this: webpack.loader.LoaderContext, source: string, _map: string) {
   // Disable caching until we can integrate incremental Glimmer bundle
@@ -9,10 +9,10 @@ export = function(this: webpack.loader.LoaderContext, source: string, _map: stri
   let { compiler } = this.query;
 
   // Get the path of the module relative to the project root.
-  let relativePath = relative(process.cwd(), this.resourcePath);
-  relativePath = `./${relativePath}`;
+  // let relativePath = relative(process.cwd(), this.resourcePath);
+  // relativePath = `./${relativePath}`;
 
-  compiler.addComponent(relativePath, source);
+  compiler.addComponent(this.resourcePath, source);
 
   return 'export default {};';
 }

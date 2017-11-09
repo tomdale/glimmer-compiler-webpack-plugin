@@ -1,8 +1,7 @@
-import { ConcatSource, RawSource } from 'webpack-sources';
-import { BundleCompiler, Specifier, specifierFor } from '@glimmer/bundle-compiler';
-import { expect } from '@glimmer/util';
+import { RawSource } from 'webpack-sources';
+import { BundleCompiler, TemplateLocator } from '@glimmer/bundle-compiler';
 import { ConstantPool } from '@glimmer/program';
-import { BundleCompilerDelegate } from '@glimmer/compiler-delegates';
+import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
 import { AST } from '@glimmer/syntax';
 
 import ComponentRegistry from './component-registry';
@@ -14,13 +13,13 @@ export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
 }
 
-export interface Specifiers {
-  [key: string]: Specifier;
+export interface Specifiers<TemplateMeta> {
+  [key: string]: TemplateLocator<TemplateMeta>;
 }
 
-interface BundleOptions {
-  helpers?: Specifiers;
-  delegate: BundleCompilerDelegate;
+interface BundleOptions<TemplateMeta> {
+  helpers?: Specifiers<TemplateMeta>;
+  delegate: AppCompilerDelegate<TemplateMeta>;
   inputPath: string;
 }
 
@@ -39,61 +38,47 @@ type Metadata = {};
  * components with `add()`. Once all components have been added to the bundle,
  * compile and produce a binary output by calling `compile()`.
  */
-export default class Bundle {
-  protected bundleCompiler: BundleCompiler;
-  protected delegate: BundleCompilerDelegate;
+export default class Bundle<TemplateMeta> {
+  protected bundleCompiler: BundleCompiler<TemplateMeta>;
+  protected delegate: AppCompilerDelegate<TemplateMeta>;
   protected registry = new ComponentRegistry();
-  protected helpers: Specifiers;
+  protected helpers: Specifiers<TemplateMeta>;
 
-  constructor(protected options: BundleOptions) {
+  constructor(protected options: BundleOptions<TemplateMeta>) {
     let { delegate, helpers } = options;
 
     this.helpers = helpers || {};
     this.delegate = delegate;
 
-    this.bundleCompiler =  new BundleCompiler(delegate);
+    this.bundleCompiler = (delegate as any)['compiler'] = new BundleCompiler(delegate);
   }
 
   add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
-    let specifier = this.normalizeSpecifier(absoluteModulePath);
-    this.bundleCompiler.add(specifier, templateSource);
+    let locator = this.templateLocatorFor(absoluteModulePath);
+    this.bundleCompiler.add(locator, templateSource);
   }
 
-  addAST(modulePath: string, ast: AST.Program) {
-    let normalizedPath = this.delegate.normalizePath(modulePath);
-    let specifier = this.delegate.specifierFor(normalizedPath);
-
-    let template = TemplateCompiler.compile({ meta: specifier }, ast)
+  addAST(absoluteModulePath: string, ast: AST.Program) {
+    let locator = this.templateLocatorFor(absoluteModulePath);
+    let template = TemplateCompiler.compile({ meta: locator }, ast)
     let block = template.toJSON();
 
-    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(specifier));
-    this.bundleCompiler.addCustom(specifier, compilable);
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(locator));
+    this.bundleCompiler.addCompilableTemplate(locator, compilable);
   }
 
-  protected normalizeSpecifier(absoluteModulePath: string) {
+  protected templateLocatorFor(absoluteModulePath: string) {
     let normalizedPath = this.delegate.normalizePath(absoluteModulePath);
-    return specifierFor(normalizedPath, 'default');
+    return this.delegate.templateLocatorFor({ module: normalizedPath, name: 'default' });
   }
 
   compile() {
     let { bundleCompiler } = this;
-    let { heap, pool } = bundleCompiler.compile();
-    let map = bundleCompiler.getSpecifierMap();
-    let entry = specifierFor('./src/glimmer/components/Entry.ts', 'default');
-    let entryHandle = expect(map.vmHandleBySpecifier.get(entry) || -1, 'Should have entry handle');
-
-    let dataSegment = {
-      handle: heap.handle,
-      table: heap.table,
-      pool,
-      entryHandle
-    };
-
-    let data = this.delegate.generateDataSegment(map, pool, heap.table, heap.handle, bundleCompiler.compiledBlocks);
+    let compilation = bundleCompiler.compile();
+    let data = this.delegate.generateDataSegment(compilation);
 
     return {
-      bytecode: new BinarySource(heap.buffer),
-      constants: new ConcatSource(JSON.stringify(dataSegment)),
+      bytecode: new BinarySource(compilation.heap.buffer),
       data: new RawSource(data)
     }
   }
