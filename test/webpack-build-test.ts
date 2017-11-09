@@ -21,8 +21,7 @@ describe("component loader", () => {
 
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segment represents how many items where compiled into the buffer
-        expect(bundle.heap.table.length / 2).to.equal(4);
-
+        expect(bundle.heap.length / 2).to.equal(4);
         expect(bundle.table.length).to.equal(4);
         expect(bundle.pool.strings.sort()).to.deep.equal(
           [
