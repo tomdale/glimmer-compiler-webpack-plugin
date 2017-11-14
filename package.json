@@ -1,6 +1,6 @@
 {
   "name": "glimmer-compiler-webpack-plugin",
-  "version": "0.5.0",
+  "version": "0.4.0",
   "description": "webpack plugin for compiling Glimmer components",
   "main": "dist/src/index.js",
   "scripts": {
@@ -47,13 +47,15 @@
     "webpack": "^3.5.5"
   },
   "dependencies": {
+    "@glimmer/bundle-compiler": "^0.30.2",
     "@glimmer/compiler-delegates": "^0.9.0-alpha.5",
-    "babel-core": "^7.0.0-alpha.19",
-    "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
+    "@glimmer/util": "^0.30.2",
+    "babel-core": "7.0.0-alpha.19",
+    "babel-plugin-syntax-class-properties": "7.0.0-alpha.19",
     "babel-plugin-syntax-decorators": "7.0.0-alpha.19",
-    "babel-plugin-syntax-typescript": "^7.0.0-alpha.19",
-    "babel-traverse": "^7.0.0-alpha.19",
-    "babel-types": "^7.0.0-alpha.19",
+    "babel-plugin-syntax-typescript": "7.0.0-alpha.19",
+    "babel-traverse": "7.0.0-alpha.19",
+    "babel-types": "7.0.0-alpha.19",
     "glimmer-analyzer": "^0.3.1",
     "resolve": "^1.4.0",
     "webpack-sources": "^1.0.1"

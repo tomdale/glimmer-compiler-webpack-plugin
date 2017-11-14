@@ -4,7 +4,6 @@ import { ConstantPool } from '@glimmer/program';
 import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
 import { AST } from '@glimmer/syntax';
 
-import ComponentRegistry from './component-registry';
 import { TemplateCompiler } from '@glimmer/compiler';
 import { CompilableTemplate } from '@glimmer/opcode-compiler';
 import BinarySource from './binary-source';
@@ -41,7 +40,6 @@ type Metadata = {};
 export default class Bundle<TemplateMeta> {
   protected bundleCompiler: BundleCompiler<TemplateMeta>;
   protected delegate: AppCompilerDelegate<TemplateMeta>;
-  protected registry = new ComponentRegistry();
   protected helpers: Specifiers<TemplateMeta>;
 
   constructor(protected options: BundleOptions<TemplateMeta>) {
@@ -51,6 +49,12 @@ export default class Bundle<TemplateMeta> {
     this.delegate = delegate;
 
     this.bundleCompiler = (delegate as any)['compiler'] = new BundleCompiler(delegate);
+    this.bundleCompiler.add({ module: '@glimmer/application', name: 'mainTemplate' }, `{{#each roots key="id" as |root|~}}
+    {{~#in-element root.parent nextSibling=root.nextSibling~}}
+      {{~component root.component~}}
+    {{~/in-element~}}
+  {{~/each~}}
+  `);
   }
 
   add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
