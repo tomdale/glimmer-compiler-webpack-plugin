@@ -19,6 +19,7 @@ export interface Specifiers<TemplateMeta> {
 
 interface BundleOptions<TemplateMeta> {
   helpers?: Specifiers<TemplateMeta>;
+  mainPath?: string;
   delegate: AppCompilerDelegate<TemplateMeta>;
   inputPath: string;
 }
@@ -51,6 +52,13 @@ export default class Bundle<TemplateMeta> {
     this.delegate = delegate;
 
     this.bundleCompiler = (delegate as any)['compiler'] = new BundleCompiler(delegate);
+    if (!options.mainPath) {
+      this.bundleCompiler.add({ module: '@glimmer/application', name: 'mainLayout' }, `{{#each roots key="id" as |root|~}}
+      {{~#in-element root.parent nextSibling=root.nextSibling~}}
+        {{~component root.component~}}
+      {{~/in-element~}}
+    {{~/each~}}`);
+    }
   }
 
   add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {

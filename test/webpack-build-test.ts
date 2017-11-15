@@ -21,8 +21,8 @@ describe("component loader", () => {
 
         // A table is a tracking object for the buffer and should be divisble by 4
         // Each segment represents how many items where compiled into the buffer
-        expect(bundle.heap.length / 2).to.equal(4);
-        expect(bundle.table.length).to.equal(4);
+        expect(bundle.heap.table.length % 2).to.equal(0, 'heap divisible by 2');
+        expect(bundle.table.length).to.equal(4, 'table length');
         expect(bundle.pool.strings.sort()).to.deep.equal(
           [
             "div",
@@ -32,16 +32,17 @@ describe("component loader", () => {
             "wat",
             "\n",
             "\n  Yo yo "
-          ].sort()
-        );
+          ].sort(),
+        'string pool');
 
         expect(sortedKeys(bundle.map)).to.deep.equal([
           "template:/such-webpack/components/DropDown",
+          "template:/such-webpack/components/Main",
           "template:/such-webpack/components/OtherComponent",
           "template:/such-webpack/components/UserNav"
         ]);
 
-        expect(sortedValues(bundle.map)).to.deep.equal([2, 4, 6]);
+        expect(sortedValues(bundle.map)).to.deep.equal([2, 4, 6, 8]);
 
         expect(bundle.symbols).to.deep.equal({
           "template:/such-webpack/components/DropDown": {
@@ -49,6 +50,10 @@ describe("component loader", () => {
             symbols: []
           },
           "template:/such-webpack/components/OtherComponent": {
+            hasEval: false,
+            symbols: []
+          },
+          "template:/such-webpack/components/Main": {
             hasEval: false,
             symbols: []
           },
