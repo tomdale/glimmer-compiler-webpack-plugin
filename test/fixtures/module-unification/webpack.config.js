@@ -27,7 +27,8 @@ module.exports = {
   plugins: [
     new GlimmerCompiler({
       output: 'templates.gbx',
-      mode: 'module-unification'
+      mode: 'module-unification',
+      mainPath: './src/ui/components/Main/template.hbs'
     }),
   ]
 }

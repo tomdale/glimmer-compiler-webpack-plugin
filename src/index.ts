@@ -26,6 +26,7 @@ interface PluginOptions<TemplateMeta> {
   helpers?: Specifiers<TemplateMeta>;
   CompilerDelegate?: Constructor<AppCompilerDelegate<{}>>;
   builtins?: Builtins;
+  mainPath?: string;
 }
 
 interface Module {
@@ -164,7 +165,8 @@ class GlimmerCompiler {
 
     return new Bundle({
       inputPath,
-      delegate
+      delegate,
+      mainPath: this.options.mainPath
     });
   }
 
@@ -181,13 +183,20 @@ class GlimmerCompiler {
       }
     }
 
+    let locator;
+    if (this.options.mainPath) {
+      let { mainPath } = this.options;
+      locator = { module: mainPath, name: 'default' }
+    }
+
     return new CompilerDelegate!({
       projectPath: inputPath,
       outputFiles: {
         dataSegment: 'table.js',
         heapFile: 'templates.gbx'
       },
-      builtins: this.options.builtins
+      builtins: this.options.builtins,
+      mainTemplateLocator: locator
     });
   }
 }
