@@ -2,6 +2,7 @@ require('ts-node/register');
 
 const GlimmerCompiler = require('../../../src');
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   context: path.resolve(__dirname),
@@ -26,5 +27,6 @@ module.exports = {
       mode: 'module-unification',
       mainPath: './src/ui/components/Main/template.hbs'
     }),
+    new webpack.optimize.ModuleConcatenationPlugin()
   ]
 }

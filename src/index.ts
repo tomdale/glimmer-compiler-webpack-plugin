@@ -2,12 +2,12 @@ import { Compiler } from 'webpack';
 import { Source } from 'webpack-sources';
 
 import Debug = require('debug');
+
 import { expect } from '@glimmer/util';
+import { AST } from '@glimmer/syntax';
 import { AppCompilerDelegate, MUCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
-import Bundle, { Specifiers } from './bundle';
-import Scope from './scope';
-import { AST } from '@glimmer/syntax';
+import Bundle, { Specifiers, BundleCompilation } from './bundle';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -37,18 +37,12 @@ interface Module {
   reasons: any[];
 }
 
-interface Callback {
-  (err?: Error): void;
-}
-
 class GlimmerCompiler {
   static component() { return loader('./loaders/component'); }
-  static template() { return loader('./loaders/template'); }
   static ast() { return loader('./loaders/ast'); }
   static data() { return loader('./loaders/data'); }
 
   component() { return instanceLoader('./loaders/component', this); }
-  template() { return instanceLoader('./loaders/template', this); }
   ast() { return instanceLoader('./loaders/ast', this); }
   data() { return instanceLoader('./loaders/data', this); }
 
@@ -98,8 +92,8 @@ class GlimmerCompiler {
    * Used by the component loader when it discovers a module that contains a
    * component template.
    */
-  addComponent(path: string, template: string, scope: Scope) {
-    this.bundle.add(path, template, scope);
+  addComponent(path: string, templateSource: string) {
+    this.bundle.add(path, templateSource);
   }
 
   addAST(path: string, ast: AST.Program) {
@@ -113,57 +107,30 @@ class GlimmerCompiler {
     compiler.plugin('this-compilation', (compilation: any) => {
       debug('beginning compilation');
 
-      // At the start of a compilation, reset bundle state so we can create
-      // a new bundle.
-      let dataSegmentModules = this.dataSegmentModules = [];
-      this.bundle = this.getBundleFor(inputPath);
+      try {
+        let bundle = this.bundle = this.getBundleFor(inputPath);
+        this.didCompile = bundle.compile();
 
-      // We mutate the source code of the data segment module during the
-      // optimize-tree phase, which requires us to reseal the compilation in
-      // order to produce working output. This flag tracks whether the second
-      // seal has happened, so we don't end up in an infinite loop requesting
-      // reseals.
-      let resealed = false;
-
-      compilation.plugin('optimize-tree', (_chunks: any[], _modules: Module[], cb: Callback) => {
-        debug('optimizing tree');
-
-        if (resealed) {
-          debug('skipping second compile');
-          return cb();
-        }
-
-        try {
-          let { bytecode, data } = this.bundle.compile();
-
-          rewriteDataSegmentModules(dataSegmentModules, compilation, data)
-            .then(cb, cb);
-
+        this.didCompile.then(() => {
           compilation.plugin('additional-assets', (cb: () => void) => {
             debug('adding additional assets');
             let { output } = this.options;
+            let bytecode = bundle.compilation.bytecode;
 
             compilation.assets[output] = bytecode;
             cb();
           });
-
-          compilation.plugin('need-additional-seal', () => {
-            if (resealed) {
-              return false;
-            }
-
-            debug('requesting additional seal');
-            resetCompilation(compilation);
-
-            return resealed = true;
-          });
-        } catch (err) {
-          compilation.errors.push(err);
-          cb();
-        }
-      })
+        }, err => compilation.errors.push(err));
+      } catch (err) {
+        compilation.errors.push(err);
+      }
     });
   }
+
+  /**
+   * Promise that resolves once Glimmer template compilation has completed.
+   */
+  didCompile: Promise<BundleCompilation>;
 
   protected getBundleFor(inputPath: string) {
     let delegate = this.getCompilerDelegateFor(inputPath);
@@ -204,45 +171,6 @@ class GlimmerCompiler {
       mainTemplateLocator: locator
     });
   }
-}
-
-function resetCompilation(compilation: any) {
-  for (let mod of compilation.modules) {
-    mod.used = null;
-    mod.usedExports = null;
-  }
-
-  compilation.finish();
-}
-
-function rewriteDataSegmentModules(modules: Module[], compilation: any, source: Source) {
-  let promises = modules.map(m => populateDataSegment(m, compilation, source));
-
-  return Promise.all(promises)
-    .then(() => undefined);
-}
-
-// Replaces the passed module's source code with the data segment we code
-// generate.
-function populateDataSegment(module: any, compilation: any, source: Source): Promise<void> {
-  module.__table = source;
-  return rebuildModule(module, compilation)
-}
-
-function rebuildModule(module: any, compilation: any): Promise<void> {
-  return new Promise((resolve, reject) => {
-    debug('rebuilding module; module=%s', module);
-
-    compilation.rebuildModule(module, (err: any) => {
-      if (err) {
-        debug('error rebuilding module; module=%s; err=%o', module, err);
-        reject(err);
-      } else {
-        debug('rebuilt module; module=%s', module);
-        resolve();
-      }
-    });
-  });
 }
 
 function loader(loaderPath: string) {

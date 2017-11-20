@@ -1,13 +1,21 @@
-import { RawSource } from 'webpack-sources';
+import { promisify } from 'util';
+import { readFile } from 'fs';
+import { join } from 'path';
+import Debug = require('debug');
+
+const debug = Debug('glimmer-compiler-webpack-plugin:bundle');
+
 import { BundleCompiler, TemplateLocator } from '@glimmer/bundle-compiler';
 import { ConstantPool } from '@glimmer/program';
 import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
 import { AST } from '@glimmer/syntax';
-
-import ComponentRegistry from './component-registry';
 import { TemplateCompiler } from '@glimmer/compiler';
 import { CompilableTemplate } from '@glimmer/opcode-compiler';
+import { Project } from 'glimmer-analyzer';
+
 import BinarySource from './binary-source';
+
+const readFileAsync = promisify(readFile);
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -31,7 +39,10 @@ export interface DataSegment {
   entryHandle: number;
 }
 
-type Metadata = {};
+export interface BundleCompilation {
+  bytecode: BinarySource;
+  data: string;
+}
 
 /**
  * A Bundle encapsulates the compilation of multiple Glimmer templates into a
@@ -40,9 +51,10 @@ type Metadata = {};
  * compile and produce a binary output by calling `compile()`.
  */
 export default class Bundle<TemplateMeta> {
+  public compilation: BundleCompilation;
+
   protected bundleCompiler: BundleCompiler<TemplateMeta>;
   protected delegate: AppCompilerDelegate<TemplateMeta>;
-  protected registry = new ComponentRegistry();
   protected helpers: Specifiers<TemplateMeta>;
 
   constructor(protected options: BundleOptions<TemplateMeta>) {
@@ -61,12 +73,15 @@ export default class Bundle<TemplateMeta> {
     }
   }
 
-  add(absoluteModulePath: string, templateSource: string, _meta: Metadata) {
+  add(absoluteModulePath: string, templateSource: string) {
+    debug('adding template; path=%s', absoluteModulePath);
     let locator = this.templateLocatorFor(absoluteModulePath);
     this.bundleCompiler.add(locator, templateSource);
   }
 
   addAST(absoluteModulePath: string, ast: AST.Program) {
+    debug('adding template as AST; path=%s', absoluteModulePath);
+
     let locator = this.templateLocatorFor(absoluteModulePath);
     let template = TemplateCompiler.compile({ meta: locator }, ast)
     let block = template.toJSON();
@@ -80,14 +95,47 @@ export default class Bundle<TemplateMeta> {
     return this.delegate.templateLocatorFor({ module: normalizedPath, name: 'default' });
   }
 
-  compile() {
+  async compile() {
+    debug('beginning bundle compilation');
+
     let { bundleCompiler } = this;
+
+    await this.discoverTemplates();
+
     let compilation = bundleCompiler.compile();
     let data = this.delegate.generateDataSegment(compilation);
 
-    return {
+    debug('completed bundle compilation');
+
+    this.compilation = {
       bytecode: new BinarySource(compilation.heap.buffer),
-      data: new RawSource(data)
+      data
+    };
+
+    return this.compilation;
+  }
+
+  protected async discoverTemplates() {
+    let project = new Project(this.options.inputPath);
+    let readTemplates: Promise<[string, string]>[] = [];
+
+    for (let specifier in project.map) {
+      let [type] = specifier.split(':');
+      if (type === 'template') {
+        let filePath = join(this.options.inputPath, project.map[specifier]);
+        readTemplates.push(
+          Promise.all([
+            filePath,
+            readFileAsync(filePath, { encoding: 'utf8' }),
+          ])
+        );
+      }
     }
+
+    let templates = await Promise.all(readTemplates);
+
+    templates.forEach(([path, templateSource]) => {
+      this.add(path, templateSource);
+    });
   }
 }
