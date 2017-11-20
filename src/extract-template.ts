@@ -1,8 +1,10 @@
 import * as Babel from 'babel-core';
 import { NodePath } from 'babel-traverse';
 import * as types from 'babel-types';
-import Scope from './scope';
-import { expect } from '@glimmer/util';
+import { expect, Dict } from '@glimmer/util';
+import { ModuleLocator } from '@glimmer/bundle-compiler';
+
+type Scope = Dict<ModuleLocator>;
 
 interface PluginState {
   localBinding: types.Identifier;
