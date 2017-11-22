@@ -8,6 +8,7 @@ import { AST } from '@glimmer/syntax';
 import { AppCompilerDelegate, MUCompilerDelegate, Builtins } from '@glimmer/compiler-delegates';
 
 import Bundle, { Specifiers, BundleCompilation } from './bundle';
+import BundlePlugin from './plugin';
 
 const debug = Debug('glimmer-compiler-webpack-plugin:plugin');
 
@@ -27,6 +28,7 @@ interface PluginOptions<TemplateMeta> {
   CompilerDelegate?: Constructor<AppCompilerDelegate<{}>>;
   builtins?: Builtins;
   mainPath?: string;
+  plugins?: BundlePlugin<TemplateMeta>[];
 }
 
 interface Module {
@@ -134,11 +136,13 @@ class GlimmerCompiler {
 
   protected getBundleFor(inputPath: string) {
     let delegate = this.getCompilerDelegateFor(inputPath);
+    let { mainPath, plugins } = this.options;
 
     return new Bundle({
       inputPath,
       delegate,
-      mainPath: this.options.mainPath
+      mainPath,
+      plugins
     });
   }
 

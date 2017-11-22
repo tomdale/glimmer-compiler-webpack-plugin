@@ -20,6 +20,19 @@ describe("module unification", function() {
 <!----></body>`);
   });
 
+  it("allows plugins to rewrite template ASTs", async function() {
+    const { outputPath } = await buildWithWebpack("./fixtures/module-unification/webpack.rewriter.config.js");
+
+    let bundlePath = path.join(outputPath, "bundle.js");
+    let { render } = require(bundlePath);
+
+    let html = await render();
+
+    expect(html).to.equal(`<body>Goodbye, universe!
+<h1>UserNav wat</h1>
+<!----></body>`);
+  });
+
   it("works with module concatenation optimization", async function() {
     const { outputPath } = await buildWithWebpack("./fixtures/module-unification/webpack.concatenation.config.js");
 

@@ -7,12 +7,14 @@ const debug = Debug('glimmer-compiler-webpack-plugin:bundle');
 import { BundleCompiler, TemplateLocator } from '@glimmer/bundle-compiler';
 import { ConstantPool } from '@glimmer/program';
 import { AppCompilerDelegate } from '@glimmer/compiler-delegates';
-import { AST } from '@glimmer/syntax';
+import { AST, preprocess, ASTPluginBuilder } from '@glimmer/syntax';
 import { TemplateCompiler } from '@glimmer/compiler';
 import { CompilableTemplate } from '@glimmer/opcode-compiler';
 import { Project } from 'glimmer-analyzer';
 
 import BinarySource from './binary-source';
+import BundlePlugin from './plugin';
+
 const readFileAsync = function readFileAsync(filePath: string) {
   return new Promise<string>((resolve, reject) => {
     readFile(filePath, { encoding: 'utf8' }, (err, data) => {
@@ -34,10 +36,11 @@ export interface Specifiers<TemplateMeta> {
 }
 
 interface BundleOptions<TemplateMeta> {
-  helpers?: Specifiers<TemplateMeta>;
-  mainPath?: string;
   delegate: AppCompilerDelegate<TemplateMeta>;
   inputPath: string;
+  helpers?: Specifiers<TemplateMeta>;
+  mainPath?: string;
+  plugins?: BundlePlugin<TemplateMeta>[];
 }
 
 export interface DataSegment {
@@ -64,12 +67,14 @@ export default class Bundle<TemplateMeta> {
   protected bundleCompiler: BundleCompiler<TemplateMeta>;
   protected delegate: AppCompilerDelegate<TemplateMeta>;
   protected helpers: Specifiers<TemplateMeta>;
+  protected plugins: BundlePlugin<TemplateMeta>[];
 
   constructor(protected options: BundleOptions<TemplateMeta>) {
-    let { delegate, helpers } = options;
+    let { delegate, helpers, plugins } = options;
 
     this.helpers = helpers || {};
     this.delegate = delegate;
+    this.plugins = plugins || [];
 
     this.bundleCompiler = (delegate as any)['compiler'] = new BundleCompiler(delegate);
     if (!options.mainPath) {
@@ -81,13 +86,23 @@ export default class Bundle<TemplateMeta> {
     }
   }
 
-  add(absoluteModulePath: string, templateSource: string) {
+  async add(absoluteModulePath: string, templateSource: string) {
     debug('adding template; path=%s', absoluteModulePath);
     let locator = this.templateLocatorFor(absoluteModulePath);
-    this.bundleCompiler.add(locator, templateSource);
+
+    let astPlugins = await this.collectASTPluginsFor(locator);
+
+    let { meta } = locator;
+
+    let ast = preprocess(templateSource, { plugins: { ast: astPlugins } });
+    let template = TemplateCompiler.compile({ meta }, ast);
+    let block = template.toJSON();
+
+    let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(locator));
+    this.bundleCompiler.addCompilableTemplate(locator, compilable);
   }
 
-  addAST(absoluteModulePath: string, ast: AST.Program) {
+  async addAST(absoluteModulePath: string, ast: AST.Program) {
     debug('adding template as AST; path=%s', absoluteModulePath);
 
     let locator = this.templateLocatorFor(absoluteModulePath);
@@ -96,6 +111,16 @@ export default class Bundle<TemplateMeta> {
 
     let compilable = CompilableTemplate.topLevel(block, this.bundleCompiler.compileOptions(locator));
     this.bundleCompiler.addCompilableTemplate(locator, compilable);
+  }
+
+  protected async collectASTPluginsFor(locator: TemplateLocator<TemplateMeta>): Promise<ASTPluginBuilder[]> {
+    let astPlugins = await Promise.all(this.plugins.map(plugin => {
+      return Promise.resolve(plugin.astPluginsFor(locator));
+    }));
+
+    return astPlugins.reduce<ASTPluginBuilder[]>((allPlugins, plugins) => {
+      return [...allPlugins, ...plugins];
+    }, []);
   }
 
   protected templateLocatorFor(absoluteModulePath: string) {
@@ -142,8 +167,8 @@ export default class Bundle<TemplateMeta> {
 
     let templates = await Promise.all(readTemplates);
 
-    templates.forEach(([path, templateSource]) => {
-      this.add(path, templateSource);
-    });
+    await Promise.all(templates.map(([path, templateSource]) => {
+      return this.add(path, templateSource);
+    }));
   }
 }
