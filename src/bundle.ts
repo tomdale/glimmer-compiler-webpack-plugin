@@ -1,4 +1,3 @@
-import { promisify } from 'util';
 import { readFile } from 'fs';
 import { join } from 'path';
 import Debug = require('debug');
@@ -14,8 +13,17 @@ import { CompilableTemplate } from '@glimmer/opcode-compiler';
 import { Project } from 'glimmer-analyzer';
 
 import BinarySource from './binary-source';
-
-const readFileAsync = promisify(readFile);
+const readFileAsync = function readFileAsync(filePath: string) {
+  return new Promise<string>((resolve, reject) => {
+    readFile(filePath, { encoding: 'utf8' }, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+};
 
 export interface Resolver {
   resolveSync(context: {}, path: string, request: string): string | null;
@@ -126,7 +134,7 @@ export default class Bundle<TemplateMeta> {
         readTemplates.push(
           Promise.all([
             filePath,
-            readFileAsync(filePath, { encoding: 'utf8' }),
+            readFileAsync(filePath),
           ])
         );
       }
