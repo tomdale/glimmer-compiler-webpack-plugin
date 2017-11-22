@@ -5,108 +5,32 @@ import { dirSync as tmpdir } from "tmp";
 import * as path from "path";
 
 describe("module unification", function() {
-  this.timeout(5000);
+  this.timeout(10000);
 
   it("compiles the data segment and binary bytecode", async function() {
     const { outputPath } = await buildWithWebpack("./fixtures/module-unification/webpack.config.js");
 
     let bundlePath = path.join(outputPath, "bundle.js");
-    let bundle = require(bundlePath).default;
+    let { render } = require(bundlePath);
 
-    // A table is a tracking object for the buffer and should be divisble by 4
-    // Each segment represents how many items where compiled into the buffer
-    expect(bundle.heap.table.length % 2).to.equal(0, 'heap divisible by 2');
-    expect(bundle.table.length).to.equal(5, 'table length');
-    expect(bundle.pool.strings.sort()).to.deep.equal(
-      [
-        "div",
-        "OtherComponent ",
-        "h1",
-        "UserNav ",
-        "wat",
-        "\n",
-        "\n  Yo yo "
-      ].sort(),
-    'string pool');
+    let html = await render();
 
-    expect(sortedKeys(bundle.map)).to.deep.equal([
-      "template:/such-webpack/components/DropDown",
-      "template:/such-webpack/components/Main",
-      "template:/such-webpack/components/OtherComponent",
-      "template:/such-webpack/components/UserNav"
-    ]);
-
-    expect(sortedValues(bundle.map)).to.deep.equal([2, 4, 6, 8]);
-
-    expect(bundle.symbols).to.deep.equal({
-      "template:/such-webpack/components/DropDown": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/OtherComponent": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/Main": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/UserNav": {
-        hasEval: false,
-        symbols: []
-      }
-    });
+    expect(html).to.equal(`<body>Hello, world!
+<h1>UserNav wat</h1>
+<!----></body>`);
   });
 
   it("works with module concatenation optimization", async function() {
     const { outputPath } = await buildWithWebpack("./fixtures/module-unification/webpack.concatenation.config.js");
 
     let bundlePath = path.join(outputPath, "bundle.js");
-    let bundle = require(bundlePath).default;
+    let { render } = require(bundlePath);
 
-    // A table is a tracking object for the buffer and should be divisble by 4
-    // Each segment represents how many items where compiled into the buffer
-    expect(bundle.heap.table.length % 2).to.equal(0, 'heap divisible by 2');
-    expect(bundle.table.length).to.equal(5, 'table length');
-    expect(bundle.pool.strings.sort()).to.deep.equal(
-      [
-        "div",
-        "OtherComponent ",
-        "h1",
-        "UserNav ",
-        "wat",
-        "\n",
-        "\n  Yo yo "
-      ].sort(),
-    'string pool');
+    let html = await render();
 
-    expect(sortedKeys(bundle.map)).to.deep.equal([
-      "template:/such-webpack/components/DropDown",
-      "template:/such-webpack/components/Main",
-      "template:/such-webpack/components/OtherComponent",
-      "template:/such-webpack/components/UserNav"
-    ]);
-
-    expect(sortedValues(bundle.map)).to.deep.equal([2, 4, 6, 8]);
-
-    expect(bundle.symbols).to.deep.equal({
-      "template:/such-webpack/components/DropDown": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/OtherComponent": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/Main": {
-        hasEval: false,
-        symbols: []
-      },
-      "template:/such-webpack/components/UserNav": {
-        hasEval: false,
-        symbols: []
-      }
-    });
+    expect(html).to.equal(`<body>Hello, world!
+<h1>UserNav wat</h1>
+<!----></body>`);
   });
 
   it("reports compiler errors", async function() {
@@ -133,17 +57,4 @@ async function buildWithWebpack(configPath: string): Promise<{ outputPath: strin
       }
     });
   });
-}
-
-function sortedKeys(obj: {}): string[] {
-  return Object.keys(obj).sort();
-}
-
-function sortedValues(obj: { [s: string]: number }): number[] {
-  let values: number[] = [];
-  for (let key in obj) {
-    values.push(obj[key]);
-  }
-
-  return values.sort((a, b) => a - b);
 }

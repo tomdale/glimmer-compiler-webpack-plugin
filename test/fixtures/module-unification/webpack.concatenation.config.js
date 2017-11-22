@@ -7,6 +7,10 @@ const webpack = require('webpack');
 module.exports = {
   context: path.resolve(__dirname),
   entry: './index.js',
+  target: 'node',
+  node: {
+    __dirname: false
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
@@ -24,8 +28,7 @@ module.exports = {
   plugins: [
     new GlimmerCompiler({
       output: 'templates.gbx',
-      mode: 'module-unification',
-      mainPath: './src/ui/components/Main/template.hbs'
+      mode: 'module-unification'
     }),
     new webpack.optimize.ModuleConcatenationPlugin()
   ]
