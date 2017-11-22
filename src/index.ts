@@ -133,29 +133,34 @@ class GlimmerCompiler {
           return cb();
         }
 
-        let { bytecode, data } = this.bundle.compile();
+        try {
+          let { bytecode, data } = this.bundle.compile();
 
-        rewriteDataSegmentModules(dataSegmentModules, compilation, data)
-          .then(cb, cb);
+          rewriteDataSegmentModules(dataSegmentModules, compilation, data)
+            .then(cb, cb);
 
-        compilation.plugin('additional-assets', (cb: () => void) => {
-          debug('adding additional assets');
-          let { output } = this.options;
+          compilation.plugin('additional-assets', (cb: () => void) => {
+            debug('adding additional assets');
+            let { output } = this.options;
 
-          compilation.assets[output] = bytecode;
+            compilation.assets[output] = bytecode;
+            cb();
+          });
+
+          compilation.plugin('need-additional-seal', () => {
+            if (resealed) {
+              return false;
+            }
+
+            debug('requesting additional seal');
+            resetCompilation(compilation);
+
+            return resealed = true;
+          });
+        } catch (err) {
+          compilation.errors.push(err);
           cb();
-        });
-
-        compilation.plugin('need-additional-seal', () => {
-          if (resealed) {
-            return false;
-          }
-
-          debug('requesting additional seal');
-          resetCompilation(compilation);
-
-          return resealed = true;
-        });
+        }
       })
     });
   }

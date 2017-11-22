@@ -67,6 +67,25 @@ describe("component loader", () => {
       }
     });
   });
+
+  it("reports compiler errors", function(done) {
+    this.timeout(5000);
+    let config = require("./fixtures/with-errors/webpack.config.js");
+    config.output.path = tmpdir().name;
+
+    webpack(config).run((err, stats) => {
+      if (err) {
+        done(err);
+      } else if (stats.hasErrors()) {
+        let [error] = (stats as any).compilation.errors;
+        expect(error.message).to.match(/Cannot find component NonexistentComponent/);
+        done();
+      } else {
+        expect(true).to.be.false("should have reported an error");
+        done();
+      }
+    });
+  });
 });
 
 function sortedKeys(obj: {}): string[] {
