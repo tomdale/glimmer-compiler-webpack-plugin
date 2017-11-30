@@ -51,7 +51,7 @@ let app = new Application({
   loader: new BytecodeLoader({ bytecode, data }),
   builder: new StringBuilder({ element: doc.body, nextSibling: null }),
   renderer: new SyncRenderer(),
-  resolver: new Resolver(MODULE_CONFIG, new BasicModuleRegistry(data.map)),
+  resolver: new Resolver(MODULE_CONFIG, new BasicModuleRegistry(data.meta)),
   rootName: 'such-webpack',
   document: doc,
 });
