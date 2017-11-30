@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.0.0-beta.32",
-    "@glimmer/compiler-delegates": "^0.9.0-alpha.9",
+    "@glimmer/compiler-delegates": "^0.9.0-alpha.12",
     "babel-core": "^7.0.0-alpha.19",
     "babel-plugin-syntax-class-properties": "^7.0.0-alpha.19",
     "babel-plugin-syntax-decorators": "7.0.0-alpha.19",
