@@ -53,6 +53,26 @@ describe("module unification", function() {
       expect(err.message).to.match(/Cannot find component NonexistentComponent/);
     }
   });
+
+  it("works with a top level component javascript file", async function() {
+    const { outputPath } = await buildWithWebpack("./fixtures/component-javascript/webpack.config.js");
+
+    let bundlePath = path.join(outputPath, "bundle.js");
+    let { render } = require(bundlePath);
+
+    let html = await render();
+
+    expect(html).to.equal(`<body>Hello Thomas
+<!----></body>`);
+  });
+
+  it("reports compiler errors", async function() {
+    try {
+      await buildWithWebpack("./fixtures/with-errors/webpack.config.js");
+    } catch (err) {
+      expect(err.message).to.match(/Cannot find component NonexistentComponent/);
+    }
+  });
 });
 
 async function buildWithWebpack(configPath: string): Promise<{ outputPath: string, stats: webpack.Stats }> {
